@@ -1,0 +1,6 @@
+{
+  "name": "KimNguyen Fitness",
+  "description": "Ứng dụng quản lý vận hành, học viên, lịch tập và tài chính cho phòng tập Private/Studio KimNguyen Fitness.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

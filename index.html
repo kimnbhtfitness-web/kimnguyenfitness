@@ -1,0 +1,3090 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>KimNguyen Fitness - Quản Lý Private Studio</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 6 CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857'
+            },
+            dark: {
+              bg: '#0b0f19',
+              card: '#151d2e',
+              cardSoft: '#1e293d',
+              border: '#28354d',
+              muted: '#8e9eb5'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbars and polish */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0b0f19; }
+    ::-webkit-scrollbar-thumb { background: #28354d; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3b4c6e; }
+    body {
+      background-color: #0b0f19;
+      color: #f1f5f9;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+    }
+    .glow-emerald {
+      box-shadow: 0 0 15px -3px rgba(16, 185, 129, 0.25);
+    }
+    .glow-card:hover {
+      box-shadow: 0 4px 20px -2px rgba(16, 185, 129, 0.15);
+      border-color: #3b5073;
+    }
+    .badge-completed { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-cancelled { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge-rescheduled { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-paid { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-unpaid { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+  </style>
+</head>
+<body class="bg-[#0b0f19] text-slate-100 min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white pb-20 md:pb-6">
+
+  <!-- TOP HEADER -->
+  <header class="sticky top-0 z-40 bg-[#0f172a]/95 backdrop-blur-md border-b border-[#28354d] px-4 py-3">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
+      <!-- Logo & Studio Info -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white font-extrabold text-lg">
+          <i class="fa-solid fa-dumbbell"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-black text-lg md:text-xl tracking-tight text-white flex items-center gap-1.5">
+              <span>KimNguyen</span>
+              <span class="text-emerald-400">FITNESS</span>
+            </h1>
+            <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1 animate-pulse"></span>
+              Studio Active
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400 hidden xs:block">Hệ thống Quản lý Vận hành & Tài chính Studio</p>
+        </div>
+      </div>
+
+      <!-- Header Controls: Month Filter, Backup & Fast Action -->
+      <div class="flex items-center space-x-2">
+        <!-- Month Picker for global context -->
+        <div class="flex items-center bg-[#1e293d] border border-[#28354d] rounded-lg px-2.5 py-1 text-xs text-slate-200">
+          <i class="fa-regular fa-calendar-days text-emerald-400 mr-1.5"></i>
+          <select id="globalMonthSelect" onchange="changeGlobalMonth(this.value)" class="bg-transparent text-slate-200 font-medium focus:outline-none cursor-pointer">
+            <!-- Dynamically populated -->
+          </select>
+        </div>
+
+        <!-- Backup & Menu Dropdown -->
+        <div class="relative">
+          <button id="menuDropdownBtn" onclick="toggleMenuDropdown()" class="w-8 h-8 rounded-lg bg-[#1e293d] border border-[#28354d] text-slate-300 hover:text-white hover:bg-[#28354d] flex items-center justify-center transition">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          </button>
+          <div id="menuDropdown" class="hidden absolute right-0 mt-2 w-52 bg-[#151d2e] border border-[#28354d] rounded-xl shadow-2xl z-50 py-1.5 text-xs">
+            <button onclick="exportDataJSON()" class="w-full text-left px-3 py-2 text-slate-200 hover:bg-[#1e293d] flex items-center gap-2">
+              <i class="fa-solid fa-file-export text-emerald-400"></i> Xuất dữ liệu (JSON)
+            </button>
+            <button onclick="exportDataCSV()" class="w-full text-left px-3 py-2 text-slate-200 hover:bg-[#1e293d] flex items-center gap-2">
+              <i class="fa-solid fa-file-csv text-blue-400"></i> Xuất báo cáo (CSV)
+            </button>
+            <label class="w-full text-left px-3 py-2 text-slate-200 hover:bg-[#1e293d] flex items-center gap-2 cursor-pointer">
+              <i class="fa-solid fa-file-import text-amber-400"></i> Nhập dữ liệu (JSON)
+              <input type="file" id="importFileInput" accept=".json" onchange="importDataJSON(event)" class="hidden">
+            </label>
+            <div class="h-px bg-[#28354d] my-1"></div>
+            <button onclick="confirmResetData()" class="w-full text-left px-3 py-2 text-rose-400 hover:bg-rose-500/10 flex items-center gap-2">
+              <i class="fa-solid fa-rotate-left"></i> Khôi phục dữ liệu mẫu
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION TABS (Desktop top bar / Mobile bottom bar) -->
+  <nav class="bg-[#151d2e] border-b border-[#28354d] sticky top-[57px] z-30 hidden md:block">
+    <div class="max-w-7xl mx-auto px-4 flex space-x-1">
+      <button onclick="switchTab('dashboard')" id="nav-desktop-dashboard" class="tab-btn px-4 py-3 text-sm font-semibold text-emerald-400 border-b-2 border-emerald-400 flex items-center gap-2 transition">
+        <i class="fa-solid fa-chart-pie"></i> Tổng quan
+      </button>
+      <button onclick="switchTab('clients')" id="nav-desktop-clients" class="tab-btn px-4 py-3 text-sm font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center gap-2 transition">
+        <i class="fa-solid fa-users"></i> Học viên & Gói
+      </button>
+      <button onclick="switchTab('sessions')" id="nav-desktop-sessions" class="tab-btn px-4 py-3 text-sm font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center gap-2 transition">
+        <i class="fa-solid fa-calendar-check"></i> Điểm danh & Nhật ký
+      </button>
+      <button onclick="switchTab('pt')" id="nav-desktop-pt" class="tab-btn px-4 py-3 text-sm font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center gap-2 transition">
+        <i class="fa-solid fa-user-tie"></i> HLV & Tính Lương
+      </button>
+      <button onclick="switchTab('finance')" id="nav-desktop-finance" class="tab-btn px-4 py-3 text-sm font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center gap-2 transition">
+        <i class="fa-solid fa-vault"></i> Sổ quỹ Thu - Chi
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN VIEWPORT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 md:p-6 space-y-6">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: TỔNG QUAN (DASHBOARD) -->
+    <!-- ========================================== -->
+    <section id="tab-dashboard" class="space-y-6">
+      <!-- Title & Greeting -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-[#151d2e] via-[#1a2336] to-[#121927] p-4 sm:p-5 rounded-2xl border border-[#28354d]">
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-xl sm:text-2xl font-black text-white">Bảng Điều Khiển Tài Chính & Hoạt Động</h2>
+            <span class="px-2 py-0.5 rounded text-xs bg-emerald-500/20 text-emerald-400 font-bold" id="dashSelectedMonthBadge">Tháng 11/2026</span>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-400 mt-1">Giám sát doanh thu thực thu, chi phí, lợi nhuận ròng và cảnh báo học viên</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openModal('modalSession')" class="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/20">
+            <i class="fa-solid fa-plus"></i> Điểm danh nhanh
+          </button>
+          <button onclick="openModal('modalTransaction')" class="px-3 py-2 bg-[#1e293d] hover:bg-[#28354d] text-slate-200 border border-[#28354d] rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-receipt text-emerald-400"></i> Tạo thu/chi
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 KPI CARDS -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 1. Doanh Thu Thực Thu -->
+        <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl p-4 sm:p-5 relative overflow-hidden glow-card transition">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Tổng Doanh Thu</p>
+              <h3 class="text-xl sm:text-2xl font-black text-emerald-400 mt-1" id="kpiRevenue">0 đ</h3>
+              <p class="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                <i class="fa-solid fa-circle-check text-emerald-400"></i> Thực thu trong tháng
+              </p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg">
+              <i class="fa-solid fa-money-bill-trend-up"></i>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-[#28354d]/60 flex items-center justify-between text-xs text-slate-400">
+            <span>Hợp đồng & Bán lẻ</span>
+            <span class="text-emerald-400 font-semibold" id="kpiRevenueCount">0 phiếu thu</span>
+          </div>
+        </div>
+
+        <!-- 2. Tổng Chi Phí -->
+        <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl p-4 sm:p-5 relative overflow-hidden glow-card transition">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Tổng Chi Phí</p>
+              <h3 class="text-xl sm:text-2xl font-black text-rose-400 mt-1" id="kpiExpense">0 đ</h3>
+              <p class="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                <i class="fa-solid fa-chart-line-down text-rose-400"></i> Lương PT & Vận hành
+              </p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center text-lg">
+              <i class="fa-solid fa-hand-holding-dollar"></i>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-[#28354d]/60 flex items-center justify-between text-xs text-slate-400">
+            <span>Lương + Mặt bằng + Khác</span>
+            <span class="text-rose-400 font-semibold" id="kpiExpenseCount">0 phiếu chi</span>
+          </div>
+        </div>
+
+        <!-- 3. Lợi Nhuận Ròng -->
+        <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl p-4 sm:p-5 relative overflow-hidden glow-card transition">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Lợi Nhuận Ròng</p>
+              <h3 class="text-xl sm:text-2xl font-black mt-1" id="kpiProfit">0 đ</h3>
+              <p class="text-[11px] text-slate-400 mt-1 flex items-center gap-1" id="kpiProfitMarginText">
+                Tỷ suất lợi nhuận: 0%
+              </p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center text-lg">
+              <i class="fa-solid fa-scale-balanced"></i>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-[#28354d]/60 flex items-center justify-between text-xs text-slate-400">
+            <span>Hiệu quả kinh doanh</span>
+            <span class="font-bold" id="kpiProfitStatus">--</span>
+          </div>
+        </div>
+
+        <!-- 4. Tổng Công Nợ Học Viên -->
+        <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl p-4 sm:p-5 relative overflow-hidden glow-card transition">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Tổng Công Nợ HV</p>
+              <h3 class="text-xl sm:text-2xl font-black text-amber-400 mt-1" id="kpiDebt">0 đ</h3>
+              <p class="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> Chưa thanh toán đủ
+              </p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg">
+              <i class="fa-solid fa-file-invoice-dollar"></i>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-[#28354d]/60 flex items-center justify-between text-xs text-slate-400">
+            <span>Số gói còn nợ</span>
+            <span class="text-amber-400 font-semibold" id="kpiDebtCount">0 học viên</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- MONTHLY REVENUE GOAL TRACKER -->
+      <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl p-4 sm:p-5 shadow-xl space-y-3 glow-card transition">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-base">
+              <i class="fa-solid fa-bullseye"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-white text-sm flex items-center gap-2">
+                Mục Tiêu Doanh Thu Tháng
+                <span id="goalPercentBadge" class="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">0%</span>
+              </h4>
+              <p class="text-[11px] text-slate-400 mt-0.5" id="goalRemainingText">Đang theo dõi tiến độ doanh thu thực thu</p>
+            </div>
+          </div>
+          <div class="flex items-center justify-between sm:justify-end gap-3">
+            <div class="text-left sm:text-right">
+              <span class="text-[11px] text-slate-400 block">Thực thu / Mục tiêu</span>
+              <span class="text-xs sm:text-sm font-black text-white">
+                <span id="goalCurrentRev" class="text-emerald-400">0 đ</span> / <span id="goalTargetRev">0 đ</span>
+              </span>
+            </div>
+            <button onclick="openRevenueGoalModal()" class="px-3 py-1.5 bg-[#1e293d] hover:bg-[#28354d] text-slate-200 border border-[#28354d] rounded-lg text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap">
+              <i class="fa-solid fa-pen-to-square text-emerald-400"></i> Đặt mục tiêu
+            </button>
+          </div>
+        </div>
+        <div class="w-full bg-[#0b0f19] border border-[#28354d]/80 rounded-full h-3.5 overflow-hidden p-0.5">
+          <div id="goalProgressFill" class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- REVENUE TREND LINE CHART (CHART.JS) -->
+      <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl p-4 sm:p-5 shadow-xl space-y-3 glow-card transition">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#28354d]">
+          <div>
+            <h4 class="font-bold text-white text-sm sm:text-base flex items-center gap-2">
+              <i class="fa-solid fa-chart-line text-emerald-400"></i> Xu Hướng Doanh Thu Theo Từng Tháng
+            </h4>
+            <p class="text-[11px] text-slate-400 mt-0.5">Biểu đồ đường trực quan theo dõi tăng trưởng doanh thu thực thu và chi phí vận hành studio</p>
+          </div>
+          <div class="flex items-center gap-4 text-xs">
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
+              <span class="text-slate-300 font-medium">Doanh Thu</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-3 rounded-full bg-rose-400"></span>
+              <span class="text-slate-300 font-medium">Chi Phí</span>
+            </div>
+          </div>
+        </div>
+        <div class="relative w-full h-64 sm:h-72">
+          <canvas id="revenueTrendChart"></canvas>
+        </div>
+      </div>
+
+      <!-- FINANCIAL SUMMARY PROGRESS & STATS -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Visual Comparison Thu - Chi -->
+        <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl p-5 space-y-4 lg:col-span-1">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-white text-sm flex items-center gap-2">
+              <i class="fa-solid fa-chart-simple text-emerald-400"></i> Tỷ Lệ Thu - Chi
+            </h4>
+            <span class="text-[11px] text-slate-400">Tháng này</span>
+          </div>
+
+          <!-- Progress Bar Bar Visual -->
+          <div class="space-y-3">
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-300 font-medium">Doanh thu (Thực thu)</span>
+                <span class="text-emerald-400 font-bold" id="barRevVal">0 đ</span>
+              </div>
+              <div class="w-full bg-[#1e293d] rounded-full h-3 overflow-hidden">
+                <div id="barRevFill" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-3 rounded-full transition-all duration-500" style="width: 50%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-300 font-medium">Chi phí vận hành & Lương</span>
+                <span class="text-rose-400 font-bold" id="barExpVal">0 đ</span>
+              </div>
+              <div class="w-full bg-[#1e293d] rounded-full h-3 overflow-hidden">
+                <div id="barExpFill" class="bg-gradient-to-r from-rose-500 to-amber-500 h-3 rounded-full transition-all duration-500" style="width: 30%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Studio Operational Stats Box -->
+          <div class="bg-[#0b0f19] border border-[#28354d] rounded-xl p-3 text-xs space-y-2 mt-4">
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">Tổng số buổi tập trong tháng:</span>
+              <span class="font-bold text-white" id="dashTotalSessions">0 buổi</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">Buổi hoàn thành:</span>
+              <span class="font-bold text-emerald-400" id="dashCompletedSessions">0</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">Khách hủy mất buổi:</span>
+              <span class="font-bold text-rose-400" id="dashCancelledSessions">0</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">Dời lịch không trừ:</span>
+              <span class="font-bold text-amber-400" id="dashRescheduledSessions">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- QUICK ALERTS: Cảnh báo học viên sắp hết buổi & Cảnh báo nợ -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:col-span-2">
+          <!-- Alert 1: Học viên sắp hết buổi (<= 3 buổi) -->
+          <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-3 border-b border-[#28354d]">
+                <h4 class="font-bold text-sm text-white flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                  Sắp Hết Buổi Tập (≤ 3 buổi)
+                </h4>
+                <span id="lowSessionsCountBadge" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-400">0</span>
+              </div>
+              <div id="lowSessionsList" class="divide-y divide-[#28354d]/50 mt-2 max-h-56 overflow-y-auto pr-1">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-2 italic">* Liên hệ học viên để gia hạn gói tập kịp thời</p>
+          </div>
+
+          <!-- Alert 2: Học viên còn nợ học phí -->
+          <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-3 border-b border-[#28354d]">
+                <h4 class="font-bold text-sm text-white flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+                  Học Viên Đang Nợ Tiền Gói
+                </h4>
+                <span id="debtClientsCountBadge" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-400">0</span>
+              </div>
+              <div id="debtClientsList" class="divide-y divide-[#28354d]/50 mt-2 max-h-56 overflow-y-auto pr-1">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-2 italic">* Bấm "Thu tiền" để thu nợ & tự động ghi nhận vào Sổ quỹ</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: HỌC VIÊN & GÓI HỢP ĐỒNG (CLIENTS & CONTRACTS) -->
+    <!-- ========================================== -->
+    <section id="tab-clients" class="hidden space-y-6">
+      <!-- Section Header & Actions -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#151d2e] p-4 rounded-2xl border border-[#28354d]">
+        <div>
+          <h2 class="text-xl font-black text-white flex items-center gap-2">
+            <i class="fa-solid fa-users text-emerald-400"></i> Quản Lý Học Viên & Gói Hợp Đồng
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Theo dõi hồ sơ học viên, lộ trình tập luyện, tiến độ số buổi và quản lý công nợ</p>
+        </div>
+        <button onclick="openModal('modalClient')" class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition">
+          <i class="fa-solid fa-user-plus"></i> + Thêm Học Viên & Gói Mới
+        </button>
+      </div>
+
+      <!-- Filters & Search Bar -->
+      <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-[#151d2e] p-3 rounded-xl border border-[#28354d]">
+        <div class="relative flex-1">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+          <input type="text" id="clientSearchInput" oninput="renderClientsList()" placeholder="Tìm theo tên học viên, SĐT hoặc HLV..." class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg pl-8 pr-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+        </div>
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+          <button onclick="setClientFilter('all')" id="btnFilterClientAll" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 text-white transition whitespace-nowrap">
+            Tất cả (<span id="countClientAll">0</span>)
+          </button>
+          <button onclick="setClientFilter('debt')" id="btnFilterClientDebt" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1e293d] text-slate-300 hover:text-white transition whitespace-nowrap">
+            Đang nợ (<span id="countClientDebt">0</span>)
+          </button>
+          <button onclick="setClientFilter('low')" id="btnFilterClientLow" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1e293d] text-slate-300 hover:text-white transition whitespace-nowrap">
+            Sắp hết buổi (≤3) (<span id="countClientLow">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <!-- Clients Cards Grid -->
+      <div id="clientsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Rendered by JavaScript -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: ĐIỂM DANH & NHẬT KÝ BUỔI TẬP (SESSIONS & CHECK-IN) -->
+    <!-- ========================================== -->
+    <section id="tab-sessions" class="hidden space-y-6">
+      <!-- Section Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#151d2e] p-4 rounded-2xl border border-[#28354d]">
+        <div>
+          <h2 class="text-xl font-black text-white flex items-center gap-2">
+            <i class="fa-solid fa-calendar-check text-emerald-400"></i> Điểm Danh & Nhật Ký Buổi Tập
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Điểm danh nhanh, ghi nhận bài tập và tự động trừ buổi trong gói hợp đồng</p>
+        </div>
+        <button onclick="openModal('modalSession')" class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition">
+          <i class="fa-solid fa-circle-plus"></i> + Điểm Danh Buổi Mới
+        </button>
+      </div>
+
+      <!-- Session Filter Toolbar -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-[#151d2e] p-3.5 rounded-xl border border-[#28354d]">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Lọc theo ngày</label>
+          <input type="date" id="sessionFilterDate" onchange="renderSessionsList()" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Lọc theo HLV</label>
+          <select id="sessionFilterPT" onchange="renderSessionsList()" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+            <option value="all">Tất cả HLV</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Lọc theo Học viên</label>
+          <select id="sessionFilterClient" onchange="renderSessionsList()" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+            <option value="all">Tất cả Học viên</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Trạng thái</label>
+          <select id="sessionFilterStatus" onchange="renderSessionsList()" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+            <option value="all">Tất cả trạng thái</option>
+            <option value="completed">Hoàn thành (Trừ buổi)</option>
+            <option value="cancelled_charge">Khách hủy mất buổi (Trừ buổi)</option>
+            <option value="rescheduled">Dời lịch (Không trừ buổi)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Sessions List Table / Timeline -->
+      <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl overflow-hidden shadow-xl">
+        <div class="p-4 border-b border-[#28354d] flex items-center justify-between">
+          <h3 class="font-bold text-white text-sm flex items-center gap-2">
+            <i class="fa-solid fa-list-check text-emerald-400"></i> Lịch Sử Buổi Tập Gần Đây
+          </h3>
+          <span class="text-xs text-slate-400" id="sessionsTotalBadge">Hiển thị: 0 buổi</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-[#0b0f19]/80 uppercase text-[10px] text-slate-400 tracking-wider border-b border-[#28354d]">
+              <tr>
+                <th class="px-4 py-3">Thời Gian</th>
+                <th class="px-4 py-3">Học Viên</th>
+                <th class="px-4 py-3">Gói Tập</th>
+                <th class="px-4 py-3">HLV Dạy</th>
+                <th class="px-4 py-3">Trạng Thái</th>
+                <th class="px-4 py-3">Ghi Chú & Bài Tập</th>
+                <th class="px-4 py-3 text-right">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="sessionsTableBody" class="divide-y divide-[#28354d]/60">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+        <div id="sessionsEmptyState" class="hidden p-8 text-center text-slate-400 text-xs">
+          <i class="fa-regular fa-calendar-xmark text-3xl mb-2 text-slate-600"></i>
+          <p>Chưa có dữ liệu buổi tập phù hợp với bộ lọc</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 4: HUẤN LUYỆN VIÊN & TÍNH LƯƠNG (PT & PAYROLL) -->
+    <!-- ========================================== -->
+    <section id="tab-pt" class="hidden space-y-6">
+      <!-- Section Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#151d2e] p-4 rounded-2xl border border-[#28354d]">
+        <div>
+          <h2 class="text-xl font-black text-white flex items-center gap-2">
+            <i class="fa-solid fa-user-tie text-emerald-400"></i> Quản Lý HLV & Bảng Tính Lương Tự Động
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Tự động tổng hợp số buổi dạy, tính hoa hồng, thưởng/phạt và tự động ghi nhận phiếu chi lương</p>
+        </div>
+        <button onclick="openAddPTModal()" class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition">
+          <i class="fa-solid fa-plus"></i> + Thêm Huấn Luyện Viên
+        </button>
+      </div>
+
+      <!-- Payroll Month Picker Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#151d2e] p-3.5 rounded-xl border border-[#28354d]">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-slate-300">Chu kỳ tính lương:</span>
+          <div class="flex items-center bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-1 text-xs">
+            <i class="fa-solid fa-calendar-check text-emerald-400 mr-1.5"></i>
+            <select id="payrollMonthSelect" onchange="renderPayrollList()" class="bg-transparent text-slate-100 font-bold focus:outline-none cursor-pointer">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+        </div>
+        <div class="text-xs text-slate-400">
+          <span class="font-semibold text-emerald-400">* Công thức:</span> Tổng lương = Lương cứng + (Số buổi dạy × Đơn giá) + Hoa hồng + Thưởng - Phạt
+        </div>
+      </div>
+
+      <!-- PT Payroll Cards Grid -->
+      <div id="payrollGrid" class="space-y-4">
+        <!-- Rendered by JavaScript -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 5: SỔ QUỸ THU - CHI (FINANCE & CASHFLOW) -->
+    <!-- ========================================== -->
+    <section id="tab-finance" class="hidden space-y-6">
+      <!-- Section Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#151d2e] p-4 rounded-2xl border border-[#28354d]">
+        <div>
+          <h2 class="text-xl font-black text-white flex items-center gap-2">
+            <i class="fa-solid fa-vault text-emerald-400"></i> Sổ Quỹ Thu - Chi & Dòng Tiền Studio
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Quản lý toàn bộ giao dịch dòng tiền vào/ra, chi phí mặt bằng, điện nước, thiết bị, lương và bán lẻ</p>
+        </div>
+        <button onclick="openModal('modalTransaction')" class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition">
+          <i class="fa-solid fa-plus"></i> + Tạo Phiếu Thu/Chi Khác
+        </button>
+      </div>
+
+      <!-- 3 Summary Balances -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl p-4 glow-card transition">
+          <p class="text-xs font-semibold text-slate-400 uppercase">Tổng Thu Lũy Kế</p>
+          <h3 class="text-xl font-black text-emerald-400 mt-1" id="finTotalIncome">0 đ</h3>
+          <p class="text-[11px] text-slate-500 mt-1" id="finIncomeCount">0 giao dịch thu</p>
+        </div>
+        <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl p-4 glow-card transition">
+          <p class="text-xs font-semibold text-slate-400 uppercase">Tổng Chi Lũy Kế</p>
+          <h3 class="text-xl font-black text-rose-400 mt-1" id="finTotalExpense">0 đ</h3>
+          <p class="text-[11px] text-slate-500 mt-1" id="finExpenseCount">0 giao dịch chi</p>
+        </div>
+        <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl p-4 glow-card transition">
+          <p class="text-xs font-semibold text-slate-400 uppercase">Số Dư Quỹ Hiện Tại</p>
+          <h3 class="text-xl font-black text-teal-300 mt-1" id="finBalance">0 đ</h3>
+          <p class="text-[11px] text-slate-500 mt-1">Quỹ tiền mặt & Ngân hàng</p>
+        </div>
+      </div>
+
+      <!-- Filters Bar -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-[#151d2e] p-3 rounded-xl border border-[#28354d]">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Lọc theo loại</label>
+          <select id="finFilterType" onchange="renderTransactionsTable()" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+            <option value="all">Tất cả giao dịch</option>
+            <option value="income">Khoản Thu (+)</option>
+            <option value="expense">Khoản Chi (-)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Lọc theo danh mục</label>
+          <select id="finFilterCategory" onchange="renderTransactionsTable()" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+            <option value="all">Tất cả danh mục</option>
+            <option value="contract">Học phí / Hợp đồng</option>
+            <option value="pt_salary">Chi lương HLV</option>
+            <option value="rent">Tiền thuê mặt bằng</option>
+            <option value="utilities">Điện nước & Internet</option>
+            <option value="equipment">Mua thiết bị & Dụng cụ</option>
+            <option value="maintenance">Bảo trì máy móc</option>
+            <option value="retail">Bán lẻ nước & Supplement</option>
+            <option value="other">Khoản khác</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Lọc theo tháng</label>
+          <select id="finFilterMonth" onchange="renderTransactionsTable()" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+            <option value="all">Tất cả các tháng</option>
+            <!-- Dynamically populated with options -->
+          </select>
+        </div>
+      </div>
+
+      <!-- Transactions Table -->
+      <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl overflow-hidden shadow-xl">
+        <div class="p-4 border-b border-[#28354d] flex items-center justify-between">
+          <h3 class="font-bold text-white text-sm flex items-center gap-2">
+            <i class="fa-solid fa-receipt text-emerald-400"></i> Lịch Sử Giao Dịch
+          </h3>
+          <span class="text-xs text-slate-400" id="finTotalCountBadge">0 phiếu</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-[#0b0f19]/80 uppercase text-[10px] text-slate-400 tracking-wider border-b border-[#28354d]">
+              <tr>
+                <th class="px-4 py-3">Ngày & Giờ</th>
+                <th class="px-4 py-3">Mã GD</th>
+                <th class="px-4 py-3">Loại</th>
+                <th class="px-4 py-3">Danh Mục</th>
+                <th class="px-4 py-3">Nội Dung Diễn Giải</th>
+                <th class="px-4 py-3">Hình Thức</th>
+                <th class="px-4 py-3 text-right">Số Tiền (VNĐ)</th>
+                <th class="px-4 py-3 text-center">Xóa</th>
+              </tr>
+            </thead>
+            <tbody id="transactionsTableBody" class="divide-y divide-[#28354d]/60">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+        <div id="transactionsEmptyState" class="hidden p-8 text-center text-slate-400 text-xs">
+          <i class="fa-solid fa-inbox text-3xl mb-2 text-slate-600"></i>
+          <p>Không có giao dịch nào phù hợp</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAVIGATION BAR (Mobile view) -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#151d2e]/95 backdrop-blur-md border-t border-[#28354d] px-2 py-1 flex justify-around">
+    <button onclick="switchTab('dashboard')" id="nav-mobile-dashboard" class="flex flex-col items-center py-1 px-2 text-emerald-400">
+      <i class="fa-solid fa-chart-pie text-base"></i>
+      <span class="text-[10px] font-medium mt-0.5">Tổng quan</span>
+    </button>
+    <button onclick="switchTab('clients')" id="nav-mobile-clients" class="flex flex-col items-center py-1 px-2 text-slate-400">
+      <i class="fa-solid fa-users text-base"></i>
+      <span class="text-[10px] font-medium mt-0.5">Học viên</span>
+    </button>
+    <button onclick="switchTab('sessions')" id="nav-mobile-sessions" class="flex flex-col items-center py-1 px-2 text-slate-400">
+      <i class="fa-solid fa-calendar-check text-base"></i>
+      <span class="text-[10px] font-medium mt-0.5">Điểm danh</span>
+    </button>
+    <button onclick="switchTab('pt')" id="nav-mobile-pt" class="flex flex-col items-center py-1 px-2 text-slate-400">
+      <i class="fa-solid fa-user-tie text-base"></i>
+      <span class="text-[10px] font-medium mt-0.5">HLV & Lương</span>
+    </button>
+    <button onclick="switchTab('finance')" id="nav-mobile-finance" class="flex flex-col items-center py-1 px-2 text-slate-400">
+      <i class="fa-solid fa-vault text-base"></i>
+      <span class="text-[10px] font-medium mt-0.5">Sổ quỹ</span>
+    </button>
+  </nav>
+
+  <!-- ============================================================== -->
+  <!-- MODALS -->
+  <!-- ============================================================== -->
+
+  <!-- MODAL 1: THÊM HỌC VIÊN & GÓI HỢP ĐỒNG -->
+  <div id="modalClient" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-3">
+    <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-fade-in">
+      <div class="flex items-center justify-between p-4 border-b border-[#28354d]">
+        <h3 class="font-black text-white text-base flex items-center gap-2">
+          <i class="fa-solid fa-user-plus text-emerald-400"></i> Thêm Học Viên & Hợp Đồng Mới
+        </h3>
+        <button onclick="closeModal('modalClient')" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <form id="formClient" onsubmit="saveClientContract(event)" class="p-4 space-y-4 text-xs">
+        <!-- Client Details -->
+        <div class="space-y-3">
+          <h4 class="font-bold text-emerald-400 uppercase tracking-wider text-[11px]">1. Thông tin học viên</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Họ và tên *</label>
+              <input type="text" id="clientName" required placeholder="VD: Nguyễn Văn An" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Số điện thoại *</label>
+              <input type="tel" id="clientPhone" required placeholder="VD: 0912345678" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">HLV phụ trách chính *</label>
+              <select id="clientPT" required class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Mục tiêu & Tình trạng chấn thương</label>
+              <input type="text" id="clientGoal" placeholder="VD: Giảm mỡ, đau khớp gối nhẹ" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- Contract Details -->
+        <div class="space-y-3 pt-2 border-t border-[#28354d]">
+          <h4 class="font-bold text-emerald-400 uppercase tracking-wider text-[11px]">2. Gói hợp đồng tập luyện</h4>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Tên gói tập *</label>
+            <input type="text" id="packageName" required placeholder="VD: Gói Phục Hồi CEX 36 buổi, Gói 1-1 Tăng Cơ 24 buổi" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Tổng số buổi tập *</label>
+              <input type="number" id="totalSessions" required min="1" max="500" value="24" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Ngày bắt đầu</label>
+              <input type="date" id="startDate" required class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Ngày hết hạn gói</label>
+              <input type="date" id="endDate" required class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Tổng giá trị gói (VNĐ) *</label>
+              <input type="number" id="packagePrice" required min="0" step="1" placeholder="VD: 15000000" oninput="calculateRemainingDebt()" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Số tiền thanh toán trước (VNĐ) *</label>
+              <input type="number" id="paidAmount" required min="0" step="1" placeholder="VD: 10000000" oninput="calculateRemainingDebt()" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Số tiền còn nợ (Tự tính)</label>
+              <input type="text" id="calculatedDebt" readonly value="0 đ" class="w-full bg-[#0b0f19]/70 border border-[#28354d] rounded-lg px-3 py-2 text-amber-400 font-bold cursor-not-allowed">
+            </div>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Hình thức thanh toán khoản trả trước</label>
+            <select id="paymentMethod" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+              <option value="Chuyển khoản">Chuyển khoản ngân hàng</option>
+              <option value="Tiền mặt">Tiền mặt</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-[#28354d]">
+          <button type="button" onclick="closeModal('modalClient')" class="px-4 py-2 rounded-lg bg-[#1e293d] hover:bg-[#28354d] text-slate-300 font-semibold">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20">Lưu Hợp Đồng</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: ĐIỂM DANH BUỔI TẬP (CHECK-IN) -->
+  <div id="modalSession" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-3">
+    <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in">
+      <div class="flex items-center justify-between p-4 border-b border-[#28354d]">
+        <h3 class="font-black text-white text-base flex items-center gap-2">
+          <i class="fa-solid fa-calendar-check text-emerald-400"></i> Điểm Danh Buổi Tập
+        </h3>
+        <button onclick="closeModal('modalSession')" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <form id="formSession" onsubmit="saveSession(event)" class="p-4 space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Chọn Học viên *</label>
+          <select id="sessionClientId" required onchange="onSessionClientSelected()" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <!-- Live Package Info Preview -->
+        <div id="sessionClientInfoBox" class="bg-[#0b0f19] border border-[#28354d] rounded-xl p-3 text-slate-300 text-[11px] space-y-1">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Gói hiện tại:</span>
+            <span class="font-bold text-white" id="sessBoxPkgName">--</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Số buổi còn lại:</span>
+            <span class="font-extrabold text-emerald-400 text-xs" id="sessBoxRemaining">--</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">HLV trực tiếp dạy *</label>
+            <select id="sessionPTId" required class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Thời gian tập *</label>
+            <input type="datetime-local" id="sessionDateTime" required class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Trạng thái buổi tập *</label>
+          <select id="sessionStatus" required class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            <option value="completed">Hoàn thành (Tự động trừ 1 buổi)</option>
+            <option value="cancelled_charge">Khách hủy mất buổi (Tự động trừ 1 buổi)</option>
+            <option value="rescheduled">Dời lịch trước giờ (Không trừ buổi)</option>
+          </select>
+          <p class="text-[10px] text-slate-500 mt-1">* Buổi 'Hoàn thành' và 'Khách hủy mất buổi' sẽ tự động trừ 1 buổi vào gói học viên.</p>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Ghi chú bài tập & Tình trạng</label>
+          <textarea id="sessionNotes" rows="2" placeholder="VD: Squat 60kg, Deadlift 80kg, thể lực tốt..." class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-[#28354d]">
+          <button type="button" onclick="closeModal('modalSession')" class="px-4 py-2 rounded-lg bg-[#1e293d] hover:bg-[#28354d] text-slate-300 font-semibold">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20">Lưu Điểm Danh</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: THU TIỀN NỢ GÓI HỌC VIÊN -->
+  <div id="modalPayDebt" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-3">
+    <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-fade-in">
+      <div class="flex items-center justify-between p-4 border-b border-[#28354d]">
+        <h3 class="font-black text-white text-base flex items-center gap-2">
+          <i class="fa-solid fa-hand-holding-dollar text-emerald-400"></i> Thu Tiền Nợ Hợp Đồng
+        </h3>
+        <button onclick="closeModal('modalPayDebt')" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <form id="formPayDebt" onsubmit="submitPayDebt(event)" class="p-4 space-y-4 text-xs">
+        <input type="hidden" id="debtClientId">
+        <div class="bg-[#0b0f19] border border-[#28354d] rounded-xl p-3 text-[11px] space-y-1">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Học viên:</span>
+            <span class="font-bold text-white" id="debtClientNameDisplay">--</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Gói hợp đồng:</span>
+            <span class="text-slate-200" id="debtClientPackageDisplay">--</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Số tiền đang nợ:</span>
+            <span class="font-black text-rose-400 text-sm" id="debtCurrentAmountDisplay">0 đ</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Số tiền thu đợt này (VNĐ) *</label>
+          <input type="number" id="debtPayAmount" required min="1" step="1" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 font-bold focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Hình thức thanh toán</label>
+          <select id="debtPayMethod" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            <option value="Chuyển khoản">Chuyển khoản ngân hàng</option>
+            <option value="Tiền mặt">Tiền mặt</option>
+          </select>
+        </div>
+
+        <p class="text-[11px] text-emerald-400/90 italic flex items-center gap-1.5">
+          <i class="fa-solid fa-circle-info"></i> Hệ thống sẽ tự động tạo 1 phiếu THU tương ứng bên Sổ quỹ.
+        </p>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-[#28354d]">
+          <button type="button" onclick="closeModal('modalPayDebt')" class="px-4 py-2 rounded-lg bg-[#1e293d] hover:bg-[#28354d] text-slate-300 font-semibold">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20">Xác Nhận Thu Tiền</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 4: TẠO PHIẾU THU / CHI KHÁC (SỔ QUỸ) -->
+  <div id="modalTransaction" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-3">
+    <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in">
+      <div class="flex items-center justify-between p-4 border-b border-[#28354d]">
+        <h3 class="font-black text-white text-base flex items-center gap-2">
+          <i class="fa-solid fa-receipt text-emerald-400"></i> Tạo Phiếu Thu / Chi Khác
+        </h3>
+        <button onclick="closeModal('modalTransaction')" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <form id="formTransaction" onsubmit="saveManualTransaction(event)" class="p-4 space-y-4 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Loại phiếu *</label>
+            <select id="transType" required class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 font-bold focus:outline-none focus:border-emerald-500">
+              <option value="expense">Khoản Chi (-)</option>
+              <option value="income">Khoản Thu (+)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Danh mục *</label>
+            <select id="transCategory" required class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+              <option value="rent">Tiền thuê mặt bằng</option>
+              <option value="utilities">Điện nước & Internet</option>
+              <option value="equipment">Mua thiết bị tập</option>
+              <option value="maintenance">Bảo trì máy móc</option>
+              <option value="retail">Bán lẻ nước & Supplement</option>
+              <option value="pt_salary">Chi lương HLV</option>
+              <option value="contract">Học phí hợp đồng</option>
+              <option value="other">Khoản chi tiêu khác</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Số tiền (VNĐ) *</label>
+            <input type="number" id="transAmount" required min="1" step="1" placeholder="VD: 500000" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 font-bold focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Ngày thực hiện *</label>
+            <input type="date" id="transDate" required class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Hình thức thanh toán</label>
+          <select id="transMethod" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            <option value="Chuyển khoản">Chuyển khoản</option>
+            <option value="Tiền mặt">Tiền mặt</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Nội dung diễn giải chi tiết *</label>
+          <textarea id="transDescription" required rows="2" placeholder="VD: Thanh toán tiền điện tháng 11, mua thêm tạ tay 10kg..." class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-[#28354d]">
+          <button type="button" onclick="closeModal('modalTransaction')" class="px-4 py-2 rounded-lg bg-[#1e293d] hover:bg-[#28354d] text-slate-300 font-semibold">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20">Lưu Giao Dịch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 5: THÊM / CHỈNH SỬA HUẤN LUYỆN VIÊN (PT) -->
+  <div id="modalPT" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-3">
+    <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-fade-in">
+      <div class="flex items-center justify-between p-4 border-b border-[#28354d]">
+        <h3 id="modalPTTitle" class="font-black text-white text-base flex items-center gap-2">
+          <i class="fa-solid fa-user-tie text-emerald-400"></i> Thêm Huấn Luyện Viên (PT)
+        </h3>
+        <button onclick="closeModal('modalPT')" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <form id="formPT" onsubmit="savePT(event)" class="p-4 space-y-4 text-xs max-h-[82vh] overflow-y-auto">
+        <input type="hidden" id="ptEditId">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Họ và tên HLV *</label>
+            <input type="text" id="ptName" required placeholder="VD: Trần Quốc Huy" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Số điện thoại *</label>
+            <input type="tel" id="ptPhone" required placeholder="VD: 0977889900" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+
+        <!-- Section 1: Lương cứng theo ngày công -->
+        <div class="bg-[#0b0f19]/60 border border-[#28354d] rounded-xl p-3 space-y-2.5">
+          <h4 class="font-bold text-emerald-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+            <i class="fa-solid fa-calendar-day"></i> 1. Lương cứng cơ bản theo ngày đi làm
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Lương cứng chuẩn (VNĐ) *</label>
+              <input type="number" id="ptBaseSalary" required min="0" step="1" placeholder="VD: 5000000" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Ngày công chuẩn/tháng *</label>
+              <input type="number" id="ptStandardWorkDays" required min="1" max="31" step="any" value="26" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Ngày đi làm mặc định *</label>
+              <input type="number" id="ptDefaultWorkDays" required min="0" max="31" step="any" value="26" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+          </div>
+          <p class="text-[10px] text-slate-400 italic">* Lương cứng thực tế = Lương chuẩn × (Số ngày đi làm / Ngày công chuẩn). Có thể điều chỉnh số ngày từng tháng ở bảng lương.</p>
+        </div>
+
+        <!-- Section 2: Đơn giá buổi dạy theo % tiền buổi dạy khách hàng & Doanh số -->
+        <div class="bg-[#0b0f19]/60 border border-[#28354d] rounded-xl p-3 space-y-2.5">
+          <h4 class="font-bold text-emerald-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+            <i class="fa-solid fa-dumbbell"></i> 2. Đơn giá buổi dạy (% Giá buổi khách & Doanh số)
+          </h4>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Chế độ tính tiền dạy buổi *</label>
+            <select id="ptSessionPayMode" onchange="togglePTSessionPayMode()" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+              <option value="percent">Tính theo % giá buổi dạy của khách hàng + thưởng bậc doanh số</option>
+              <option value="fixed">Đơn giá cố định / buổi dạy</option>
+            </select>
+          </div>
+          <div id="ptPercentSessionFields" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">% Giá buổi dạy khách (Cơ bản) *</label>
+              <input type="number" id="ptSessionTeachPercent" required min="0" max="100" step="any" value="30" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">% Cộng thêm khi đạt KPI doanh số *</label>
+              <input type="number" id="ptSessionTeachBonusPercent" required min="0" max="100" step="any" value="5" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+          </div>
+          <div>
+            <label id="ptSessionRateLabel" class="block text-slate-300 font-semibold mb-1">Đơn giá buổi mặc định / dự phòng (VNĐ) *</label>
+            <input type="number" id="ptSessionRate" required min="0" step="1" value="180000" placeholder="VD: 180000" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+
+        <!-- Section 3: % Hoa hồng bán gói tuỳ chỉnh theo KPI -->
+        <div class="bg-[#0b0f19]/60 border border-[#28354d] rounded-xl p-3 space-y-2.5">
+          <h4 class="font-bold text-emerald-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+            <i class="fa-solid fa-award"></i> 3. % Hoa hồng bán gói & KPI Doanh số
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Ngưỡng KPI doanh số/tháng (VNĐ) *</label>
+              <input type="number" id="ptSalesKpiTarget" required min="0" step="1" value="30000000" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">% Hoa hồng chuẩn (Chưa KPI) *</label>
+              <input type="number" id="ptCommissionRate" required min="0" max="100" step="any" value="8" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">% Hoa hồng khi đạt KPI *</label>
+              <input type="number" id="ptKpiCommissionRate" required min="0" max="100" step="any" value="12" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-[#28354d]">
+          <button type="button" onclick="closeModal('modalPT')" class="px-4 py-2 rounded-lg bg-[#1e293d] hover:bg-[#28354d] text-slate-300 font-semibold">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20">Lưu Cấu Hình HLV</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 6: ĐẶT MỤC TIÊU DOANH THU THÁNG -->
+  <div id="modalRevenueGoal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-3">
+    <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-fade-in">
+      <div class="flex items-center justify-between p-4 border-b border-[#28354d]">
+        <h3 class="font-black text-white text-base flex items-center gap-2">
+          <i class="fa-solid fa-bullseye text-emerald-400"></i> Mục Tiêu Doanh Thu Tháng
+        </h3>
+        <button onclick="closeModal('modalRevenueGoal')" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <form id="formRevenueGoal" onsubmit="saveRevenueGoal(event)" class="p-4 space-y-4 text-xs">
+        <div class="bg-[#0b0f19] border border-[#28354d] rounded-xl p-3 flex justify-between items-center">
+          <span class="text-slate-400">Tháng áp dụng:</span>
+          <span class="font-bold text-emerald-400" id="goalModalMonthLabel">--</span>
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Mục tiêu doanh thu (VNĐ) *</label>
+          <input type="number" id="revenueGoalInput" required min="0" step="1" placeholder="VD: 50000000" class="w-full bg-[#0b0f19] border border-[#28354d] rounded-lg px-3 py-2 text-slate-100 font-bold focus:outline-none focus:border-emerald-500">
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-[#28354d]">
+          <button type="button" onclick="closeModal('modalRevenueGoal')" class="px-4 py-2 rounded-lg bg-[#1e293d] hover:bg-[#28354d] text-slate-300 font-semibold">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20">Lưu Mục Tiêu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-20 md:bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- ============================================================== -->
+  <!-- COMPLETE JAVASCRIPT APPLICATION LOGIC -->
+  <!-- ============================================================== -->
+  <script>
+    // LocalStorage Keys
+    const STORAGE_KEY = 'KIMNGUYEN_FITNESS_DATA_V1';
+
+    // Application State
+    let appData = {
+      clients: [],
+      pts: [],
+      sessions: [],
+      transactions: [],
+      revenueGoals: {}, // key: YYYY-MM -> target amount
+      payrollAdjustments: {} // key: `${ptId}_${monthYear}` -> { workDays, standardWorkDays, monthlySales, sessionPercentOverride, commissionOverride, bonus, fine, paid }
+    };
+
+    let currentTab = 'dashboard';
+    let currentGlobalMonth = '2026-11';
+    let currentClientFilter = 'all';
+
+    // Initial Seed Data Generator
+    function getSeedData() {
+      return {
+        clients: [
+          {
+            id: 'c1',
+            name: 'Nguyễn Hải Đăng',
+            phone: '0912345678',
+            ptId: 'pt1',
+            goal: 'Phục hồi thoát vị L4-L5, tăng cường sức mạnh core',
+            contract: {
+              packageName: 'Gói Phục Hồi CEX 36 buổi',
+              totalSessions: 36,
+              completedSessions: 33, // Only 3 sessions left -> triggers warning
+              startDate: '2026-08-01',
+              endDate: '2026-12-15',
+              totalPrice: 18000000,
+              paidAmount: 12000000 // 6.000.000 đ debt -> triggers debt warning
+            }
+          },
+          {
+            id: 'c2',
+            name: 'Lê Thị Thảo Trang',
+            phone: '0987654321',
+            ptId: 'pt2',
+            goal: 'Tăng cơ Hypertrophy toàn thân, siết eo vòng 2',
+            contract: {
+              packageName: 'Gói 1-1 Tăng Cơ Hypertrophy 24 buổi',
+              totalSessions: 24,
+              completedSessions: 14,
+              startDate: '2026-09-10',
+              endDate: '2027-01-10',
+              totalPrice: 12000000,
+              paidAmount: 12000000 // Fully paid
+            }
+          },
+          {
+            id: 'c3',
+            name: 'Trần Văn Hoàng',
+            phone: '0903112233',
+            ptId: 'pt1',
+            goal: 'Giảm mỡ nội tạng, cải thiện sức bền tim mạch',
+            contract: {
+              packageName: 'Gói Giảm Mỡ Siết Cân 30 buổi',
+              totalSessions: 30,
+              completedSessions: 8,
+              startDate: '2026-10-15',
+              endDate: '2027-02-15',
+              totalPrice: 15000000,
+              paidAmount: 10000000 // 5.000.000 đ debt
+            }
+          }
+        ],
+        pts: [
+          {
+            id: 'pt1',
+            name: 'Trần Quốc Huy',
+            phone: '0977889900',
+            baseSalary: 5000000,
+            standardWorkDays: 26,
+            defaultWorkDays: 26,
+            sessionPayMode: 'percent',
+            sessionTeachPercent: 35,
+            sessionTeachBonusPercent: 5,
+            sessionRate: 180000,
+            salesKpiTarget: 30000000,
+            commissionRate: 8,
+            kpiCommissionRate: 12
+          },
+          {
+            id: 'pt2',
+            name: 'Phan Minh Tuấn',
+            phone: '0933445566',
+            baseSalary: 4500000,
+            standardWorkDays: 26,
+            defaultWorkDays: 25,
+            sessionPayMode: 'percent',
+            sessionTeachPercent: 30,
+            sessionTeachBonusPercent: 5,
+            sessionRate: 160000,
+            salesKpiTarget: 25000000,
+            commissionRate: 7,
+            kpiCommissionRate: 10
+          }
+        ],
+        sessions: [
+          {
+            id: 's1',
+            clientId: 'c1',
+            clientName: 'Nguyễn Hải Đăng',
+            packageName: 'Gói Phục Hồi CEX 36 buổi',
+            ptId: 'pt1',
+            ptName: 'Trần Quốc Huy',
+            dateTime: '2026-11-03T08:30',
+            status: 'completed',
+            notes: 'Kéo giãn gân kheo, Bird dog, Deadbug, không đau lưng'
+          },
+          {
+            id: 's2',
+            clientId: 'c2',
+            clientName: 'Lê Thị Thảo Trang',
+            packageName: 'Gói 1-1 Tăng Cơ Hypertrophy 24 buổi',
+            ptId: 'pt2',
+            ptName: 'Phan Minh Tuấn',
+            dateTime: '2026-11-04T17:30',
+            status: 'completed',
+            notes: 'Squat 45kg x 10 rep, Hip thrust 70kg, form chuẩn'
+          },
+          {
+            id: 's3',
+            clientId: 'c3',
+            clientName: 'Trần Văn Hoàng',
+            packageName: 'Gói Giảm Mỡ Siết Cân 30 buổi',
+            ptId: 'pt1',
+            ptName: 'Trần Quốc Huy',
+            dateTime: '2026-11-05T06:45',
+            status: 'completed',
+            notes: 'Cardio HIIT 35p, Bụng xà đơn, nhịp tim mục tiêu 145bpm'
+          },
+          {
+            id: 's4',
+            clientId: 'c1',
+            clientName: 'Nguyễn Hải Đăng',
+            packageName: 'Gói Phục Hồi CEX 36 buổi',
+            ptId: 'pt1',
+            ptName: 'Trần Quốc Huy',
+            dateTime: '2026-11-07T08:30',
+            status: 'completed',
+            notes: 'Pilates core, Glute bridge, kiểm soát hơi thở tốt'
+          },
+          {
+            id: 's5',
+            clientId: 'c2',
+            clientName: 'Lê Thị Thảo Trang',
+            packageName: 'Gói 1-1 Tăng Cơ Hypertrophy 24 buổi',
+            ptId: 'pt2',
+            ptName: 'Phan Minh Tuấn',
+            dateTime: '2026-11-08T18:00',
+            status: 'cancelled_charge',
+            notes: 'Khách báo bận sát giờ tập, trừ 1 buổi theo quy định studio'
+          },
+          {
+            id: 's6',
+            clientId: 'c3',
+            clientName: 'Trần Văn Hoàng',
+            packageName: 'Gói Giảm Mỡ Siết Cân 30 buổi',
+            ptId: 'pt1',
+            ptName: 'Trần Quốc Huy',
+            dateTime: '2026-11-10T07:00',
+            status: 'rescheduled',
+            notes: 'Khách xin dời sang ngày khác do đi công tác sớm (không trừ)'
+          }
+        ],
+        transactions: [
+          // Tháng 06/2026
+          { id: 'TX-2606-01', date: '2026-06-01', type: 'expense', category: 'rent', description: 'Thuê mặt bằng Studio T6/2026', amount: 15000000, method: 'Chuyển khoản' },
+          { id: 'TX-2606-02', date: '2026-06-05', type: 'income', category: 'contract', description: 'Thu học phí 2 gói tập mở màn hè', amount: 24000000, method: 'Chuyển khoản' },
+          { id: 'TX-2606-03', date: '2026-06-25', type: 'expense', category: 'pt_salary', description: 'Chi lương HLV tháng 6', amount: 8500000, method: 'Chuyển khoản' },
+          // Tháng 07/2026
+          { id: 'TX-2607-01', date: '2026-07-01', type: 'expense', category: 'rent', description: 'Thuê mặt bằng Studio T7/2026', amount: 15000000, method: 'Chuyển khoản' },
+          { id: 'TX-2607-02', date: '2026-07-08', type: 'income', category: 'contract', description: 'Thu học phí gói Giảm cân 30 buổi', amount: 15000000, method: 'Chuyển khoản' },
+          { id: 'TX-2607-03', date: '2026-07-15', type: 'income', category: 'contract', description: 'Thu học phí gói Tăng cơ 24 buổi', amount: 12000000, method: 'Chuyển khoản' },
+          { id: 'TX-2607-04', date: '2026-07-28', type: 'expense', category: 'pt_salary', description: 'Chi lương HLV tháng 7', amount: 9200000, method: 'Chuyển khoản' },
+          // Tháng 08/2026
+          { id: 'TX-2608-01', date: '2026-08-01', type: 'expense', category: 'rent', description: 'Thuê mặt bằng Studio T8/2026', amount: 15000000, method: 'Chuyển khoản' },
+          { id: 'TX-2608-02', date: '2026-08-01', type: 'income', category: 'contract', description: 'Học viên Nguyễn Hải Đăng đóng trước gói CEX 36 buổi', amount: 12000000, method: 'Chuyển khoản' },
+          { id: 'TX-2608-03', date: '2026-08-12', type: 'income', category: 'contract', description: 'Thu hợp đồng tập VIP 1-1', amount: 18000000, method: 'Chuyển khoản' },
+          { id: 'TX-2608-04', date: '2026-08-28', type: 'expense', category: 'pt_salary', description: 'Chi lương HLV tháng 8', amount: 9800000, method: 'Chuyển khoản' },
+          // Tháng 09/2026
+          { id: 'TX-2609-01', date: '2026-09-01', type: 'expense', category: 'rent', description: 'Thuê mặt bằng Studio T9/2026', amount: 15000000, method: 'Chuyển khoản' },
+          { id: 'TX-2609-02', date: '2026-09-10', type: 'income', category: 'contract', description: 'Học viên Lê Thị Thảo Trang đóng đợt 1', amount: 6000000, method: 'Chuyển khoản' },
+          { id: 'TX-2609-03', date: '2026-09-18', type: 'income', category: 'contract', description: 'Thu học phí 2 gói Siết mỡ 1-1', amount: 26000000, method: 'Chuyển khoản' },
+          { id: 'TX-2609-04', date: '2026-09-28', type: 'expense', category: 'pt_salary', description: 'Chi lương HLV tháng 9', amount: 10400000, method: 'Chuyển khoản' },
+          // Tháng 10/2026
+          { id: 'TX-2610-01', date: '2026-10-01', type: 'expense', category: 'rent', description: 'Thuê mặt bằng Studio T10/2026', amount: 15000000, method: 'Chuyển khoản' },
+          { id: 'TX-2610-02', date: '2026-10-15', type: 'income', category: 'contract', description: 'Học viên Trần Văn Hoàng đóng trước gói Siết Cân', amount: 10000000, method: 'Chuyển khoản' },
+          { id: 'TX-2610-03', date: '2026-10-20', type: 'income', category: 'contract', description: 'Học phí gói Giảm mỡ CEX chuyên sâu', amount: 24000000, method: 'Chuyển khoản' },
+          { id: 'TX-2610-04', date: '2026-10-22', type: 'income', category: 'retail', description: 'Thu bán phụ kiện & Whey T10', amount: 2200000, method: 'Tiền mặt' },
+          { id: 'TX-2610-05', date: '2026-10-28', type: 'expense', category: 'pt_salary', description: 'Chi lương HLV tháng 10', amount: 11000000, method: 'Chuyển khoản' },
+          // Tháng 11/2026 (Tháng hiện tại)
+          {
+            id: 'TX-2611-01',
+            date: '2026-11-01',
+            type: 'expense',
+            category: 'rent',
+            description: 'Thanh toán tiền thuê mặt bằng Studio tháng 11/2026',
+            amount: 15000000,
+            method: 'Chuyển khoản'
+          },
+          {
+            id: 'TX-2611-02',
+            date: '2026-11-02',
+            type: 'income',
+            category: 'contract',
+            description: 'Học viên Lê Thị Thảo Trang thanh toán hoàn tất gói 24 buổi',
+            amount: 6000000,
+            method: 'Chuyển khoản'
+          },
+          {
+            id: 'TX-2611-03',
+            date: '2026-11-04',
+            type: 'expense',
+            category: 'utilities',
+            description: 'Tiền điện sinh hoạt và máy lạnh trung tâm tháng trước',
+            amount: 2850000,
+            method: 'Chuyển khoản'
+          },
+          {
+            id: 'TX-2611-04',
+            date: '2026-11-06',
+            type: 'income',
+            category: 'retail',
+            description: 'Thu bán lẻ nước điện giải Revive & Whey protein lon',
+            amount: 850000,
+            method: 'Tiền mặt'
+          },
+          {
+            id: 'TX-2611-05',
+            date: '2026-11-09',
+            type: 'expense',
+            category: 'equipment',
+            description: 'Mua bổ sung dây kháng lực Miniband & thảm tập TPE cao cấp',
+            amount: 1200000,
+            method: 'Chuyển khoản'
+          },
+          {
+            id: 'TX-2611-06',
+            date: '2026-11-11',
+            type: 'income',
+            category: 'contract',
+            description: 'Thu học phí gói Hồi phục & Tăng cơ học viên mới',
+            amount: 18000000,
+            method: 'Chuyển khoản'
+          }
+        ],
+        revenueGoals: {
+          '2026-10': 35000000,
+          '2026-11': 50000000
+        },
+        payrollAdjustments: {
+          'pt1_2026-11': { workDays: 26, standardWorkDays: 26, monthlySales: 32000000, sessionPercentOverride: null, commissionOverride: null, bonus: 500000, fine: 0, paid: false },
+          'pt2_2026-11': { workDays: 24, standardWorkDays: 26, monthlySales: 18000000, sessionPercentOverride: null, commissionOverride: null, bonus: 200000, fine: 0, paid: false }
+        }
+      };
+    }
+
+    // Initialize and Load Data
+    function initData() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          appData = JSON.parse(stored);
+        } else {
+          appData = getSeedData();
+          saveData();
+        }
+      } catch (e) {
+        console.error('Error loading data:', e);
+        appData = getSeedData();
+      }
+
+      // Migrate / normalize older stored structures safely
+      if (!appData.revenueGoals) {
+        appData.revenueGoals = { '2026-11': 50000000 };
+      }
+      if (!appData.payrollAdjustments) {
+        appData.payrollAdjustments = {};
+      }
+      if (Array.isArray(appData.pts)) {
+        appData.pts = appData.pts.map(pt => ({
+          ...pt,
+          standardWorkDays: pt.standardWorkDays ?? 26,
+          defaultWorkDays: pt.defaultWorkDays ?? 26,
+          sessionPayMode: pt.sessionPayMode ?? 'percent',
+          sessionTeachPercent: pt.sessionTeachPercent ?? 35,
+          sessionTeachBonusPercent: pt.sessionTeachBonusPercent ?? 5,
+          sessionRate: pt.sessionRate ?? 180000,
+          salesKpiTarget: pt.salesKpiTarget ?? 30000000,
+          commissionRate: pt.commissionRate ?? 8,
+          kpiCommissionRate: pt.kpiCommissionRate ?? ((pt.commissionRate ?? 8) + 4)
+        }));
+      }
+
+      setupDatePickers();
+      populateDropdowns();
+      refreshAllViews();
+    }
+
+    function saveData() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      } catch (e) {
+        console.error('Failed to save data:', e);
+        showToast('Lỗi lưu trữ dữ liệu!', 'error');
+      }
+    }
+
+    // Date & Currency Formatters
+    function formatVND(amount) {
+      if (isNaN(amount) || amount === null || amount === undefined) return '0 đ';
+      return Math.round(amount).toLocaleString('vi-VN') + ' đ';
+    }
+
+    function formatDateDisplay(dateStr) {
+      if (!dateStr) return '';
+      const [year, month, day] = dateStr.split('-');
+      if (!day) return dateStr;
+      return `${day}/${month}/${year}`;
+    }
+
+    function formatDateTimeDisplay(dateTimeStr) {
+      if (!dateTimeStr) return '';
+      const d = new Date(dateTimeStr);
+      if (isNaN(d.getTime())) return dateTimeStr;
+      const hours = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${hours}:${mins} - ${day}/${month}/${year}`;
+    }
+
+    // Setup Month Dropdowns
+    function setupDatePickers() {
+      const globalMonthSelect = document.getElementById('globalMonthSelect');
+      const payrollMonthSelect = document.getElementById('payrollMonthSelect');
+      const finFilterMonth = document.getElementById('finFilterMonth');
+
+      const months = [
+        { val: '2026-11', label: 'Tháng 11/2026' },
+        { val: '2026-10', label: 'Tháng 10/2026' },
+        { val: '2026-09', label: 'Tháng 09/2026' },
+        { val: '2026-08', label: 'Tháng 08/2026' },
+        { val: '2026-07', label: 'Tháng 07/2026' },
+        { val: '2026-06', label: 'Tháng 06/2026' },
+        { val: '2026-12', label: 'Tháng 12/2026' },
+        { val: '2027-01', label: 'Tháng 01/2027' }
+      ];
+
+      // Populate Global Month Select
+      globalMonthSelect.innerHTML = months.map(m => `<option value="${m.val}" ${m.val === currentGlobalMonth ? 'selected' : ''}>${m.label}</option>`).join('');
+      payrollMonthSelect.innerHTML = months.map(m => `<option value="${m.val}" ${m.val === currentGlobalMonth ? 'selected' : ''}>${m.label}</option>`).join('');
+
+      finFilterMonth.innerHTML = `<option value="all">Tất cả các tháng</option>` +
+        months.map(m => `<option value="${m.val}">${m.label}</option>`).join('');
+
+      // Set default input dates
+      const today = new Date().toISOString().split('T')[0];
+      const nowTime = new Date().toISOString().slice(0, 16);
+      if (document.getElementById('startDate')) document.getElementById('startDate').value = today;
+      if (document.getElementById('endDate')) {
+        const after3Mo = new Date();
+        after3Mo.setMonth(after3Mo.getMonth() + 3);
+        document.getElementById('endDate').value = after3Mo.toISOString().split('T')[0];
+      }
+      if (document.getElementById('transDate')) document.getElementById('transDate').value = today;
+      if (document.getElementById('sessionDateTime')) document.getElementById('sessionDateTime').value = nowTime;
+    }
+
+    function changeGlobalMonth(val) {
+      currentGlobalMonth = val;
+      document.getElementById('payrollMonthSelect').value = val;
+      document.getElementById('dashSelectedMonthBadge').innerText = `Tháng ${val.split('-')[1]}/${val.split('-')[0]}`;
+      refreshAllViews();
+      showToast(`Đã chuyển sang ${val.split('-')[1]}/${val.split('-')[0]}`, 'info');
+    }
+
+    // Tab Navigation
+    function switchTab(tabId) {
+      currentTab = tabId;
+      const tabs = ['dashboard', 'clients', 'sessions', 'pt', 'finance'];
+
+      tabs.forEach(t => {
+        const sec = document.getElementById(`tab-${t}`);
+        const deskBtn = document.getElementById(`nav-desktop-${t}`);
+        const mobBtn = document.getElementById(`nav-mobile-${t}`);
+
+        if (t === tabId) {
+          sec.classList.remove('hidden');
+          if (deskBtn) {
+            deskBtn.classList.remove('text-slate-400', 'border-transparent');
+            deskBtn.classList.add('text-emerald-400', 'border-emerald-400');
+          }
+          if (mobBtn) {
+            mobBtn.classList.remove('text-slate-400');
+            mobBtn.classList.add('text-emerald-400');
+          }
+        } else {
+          sec.classList.add('hidden');
+          if (deskBtn) {
+            deskBtn.classList.remove('text-emerald-400', 'border-emerald-400');
+            deskBtn.classList.add('text-slate-400', 'border-transparent');
+          }
+          if (mobBtn) {
+            mobBtn.classList.remove('text-emerald-400');
+            mobBtn.classList.add('text-slate-400');
+          }
+        }
+      });
+
+      refreshCurrentTab();
+    }
+
+    function refreshAllViews() {
+      populateDropdowns();
+      renderDashboard();
+      renderClientsList();
+      renderSessionsList();
+      renderPayrollList();
+      renderTransactionsTable();
+    }
+
+    function refreshCurrentTab() {
+      if (currentTab === 'dashboard') renderDashboard();
+      else if (currentTab === 'clients') renderClientsList();
+      else if (currentTab === 'sessions') renderSessionsList();
+      else if (currentTab === 'pt') renderPayrollList();
+      else if (currentTab === 'finance') renderTransactionsTable();
+    }
+
+    // Populate Dynamic Select Boxes
+    function populateDropdowns() {
+      const clientPT = document.getElementById('clientPT');
+      const sessionPTId = document.getElementById('sessionPTId');
+      const sessionFilterPT = document.getElementById('sessionFilterPT');
+      const sessionClientId = document.getElementById('sessionClientId');
+      const sessionFilterClient = document.getElementById('sessionFilterClient');
+
+      // Populate PTs
+      const ptOptions = appData.pts.map(p => `<option value="${p.id}">${p.name} (${p.phone})</option>`).join('');
+      if (clientPT) clientPT.innerHTML = ptOptions;
+      if (sessionPTId) sessionPTId.innerHTML = ptOptions;
+      if (sessionFilterPT) sessionFilterPT.innerHTML = `<option value="all">Tất cả HLV</option>` + appData.pts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+
+      // Populate Clients
+      const clientOptions = appData.clients.map(c => `<option value="${c.id}">${c.name} - ${c.contract.packageName}</option>`).join('');
+      if (sessionClientId) sessionClientId.innerHTML = clientOptions;
+      if (sessionFilterClient) sessionFilterClient.innerHTML = `<option value="all">Tất cả Học viên</option>` + appData.clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+      onSessionClientSelected();
+    }
+
+    // ==============================================================
+    // TAB 1: RENDER DASHBOARD
+    // ==============================================================
+    function renderDashboard() {
+      const targetMonth = currentGlobalMonth; // format: YYYY-MM
+
+      // 1. Calculate Monthly Revenue (Thực thu trong tháng)
+      const monthlyIncomeTxs = appData.transactions.filter(t => t.type === 'income' && t.date.startsWith(targetMonth));
+      const monthlyRevenue = monthlyIncomeTxs.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+      // 2. Calculate Monthly Expenses (Chi phí vận hành + Lương PT chi trong tháng)
+      const monthlyExpenseTxs = appData.transactions.filter(t => t.type === 'expense' && t.date.startsWith(targetMonth));
+      const monthlyExpense = monthlyExpenseTxs.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+      // 3. Profit
+      const monthlyProfit = monthlyRevenue - monthlyExpense;
+      const profitMargin = monthlyRevenue > 0 ? Math.round((monthlyProfit / monthlyRevenue) * 100) : 0;
+
+      // 4. Total Debt (Công nợ hiện tại của tất cả học viên)
+      let totalDebt = 0;
+      let debtClientsCount = 0;
+      const debtClients = [];
+      const lowSessionClients = [];
+
+      appData.clients.forEach(c => {
+        const pkg = c.contract;
+        const remainingDebt = Math.max(0, (pkg.totalPrice || 0) - (pkg.paidAmount || 0));
+        if (remainingDebt > 0) {
+          totalDebt += remainingDebt;
+          debtClientsCount++;
+          debtClients.push({
+            id: c.id,
+            name: c.name,
+            phone: c.phone,
+            packageName: pkg.packageName,
+            debt: remainingDebt
+          });
+        }
+
+        const remainingSessions = Math.max(0, (pkg.totalSessions || 0) - (pkg.completedSessions || 0));
+        if (remainingSessions <= 3) {
+          lowSessionClients.push({
+            id: c.id,
+            name: c.name,
+            phone: c.phone,
+            packageName: pkg.packageName,
+            remaining: remainingSessions,
+            total: pkg.totalSessions
+          });
+        }
+      });
+
+      // Update KPI cards
+      document.getElementById('kpiRevenue').innerText = formatVND(monthlyRevenue);
+      document.getElementById('kpiRevenueCount').innerText = `${monthlyIncomeTxs.length} khoản thu`;
+
+      document.getElementById('kpiExpense').innerText = formatVND(monthlyExpense);
+      document.getElementById('kpiExpenseCount').innerText = `${monthlyExpenseTxs.length} khoản chi`;
+
+      const kpiProfitEl = document.getElementById('kpiProfit');
+      kpiProfitEl.innerText = formatVND(monthlyProfit);
+      if (monthlyProfit >= 0) {
+        kpiProfitEl.className = 'text-xl sm:text-2xl font-black text-emerald-400 mt-1';
+        document.getElementById('kpiProfitStatus').innerText = 'Lãi dương';
+        document.getElementById('kpiProfitStatus').className = 'font-bold text-emerald-400';
+      } else {
+        kpiProfitEl.className = 'text-xl sm:text-2xl font-black text-rose-400 mt-1';
+        document.getElementById('kpiProfitStatus').innerText = 'Thâm hụt';
+        document.getElementById('kpiProfitStatus').className = 'font-bold text-rose-400';
+      }
+      document.getElementById('kpiProfitMarginText').innerText = `Biên lợi nhuận: ${profitMargin}%`;
+
+      document.getElementById('kpiDebt').innerText = formatVND(totalDebt);
+      document.getElementById('kpiDebtCount').innerText = `${debtClientsCount} học viên nợ`;
+
+      // Monthly Revenue Goal Progress
+      const goalAmount = Number((appData.revenueGoals && appData.revenueGoals[targetMonth]) || 50000000);
+      const goalPctRaw = goalAmount > 0 ? (monthlyRevenue / goalAmount) * 100 : 0;
+      const goalPctDisplay = Math.round(goalPctRaw * 10) / 10;
+      const goalFillPct = Math.min(100, Math.max(0, goalPctRaw));
+
+      document.getElementById('goalCurrentRev').innerText = formatVND(monthlyRevenue);
+      document.getElementById('goalTargetRev').innerText = formatVND(goalAmount);
+      document.getElementById('goalProgressFill').style.width = `${goalFillPct}%`;
+
+      const goalBadgeEl = document.getElementById('goalPercentBadge');
+      const goalFillEl = document.getElementById('goalProgressFill');
+      const goalRemEl = document.getElementById('goalRemainingText');
+
+      goalBadgeEl.innerText = `${goalPctDisplay}%`;
+      if (goalPctRaw >= 100) {
+        goalBadgeEl.className = 'px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+        goalFillEl.className = 'h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 transition-all duration-500';
+        goalRemEl.innerText = `Đã vượt mục tiêu ${formatVND(monthlyRevenue - goalAmount)}!`;
+      } else if (goalPctRaw >= 50) {
+        goalBadgeEl.className = 'px-2 py-0.5 rounded-full text-[11px] font-black bg-teal-500/20 text-teal-300 border border-teal-500/30';
+        goalFillEl.className = 'h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500';
+        goalRemEl.innerText = `Còn thiếu ${formatVND(goalAmount - monthlyRevenue)} để đạt mục tiêu tháng`;
+      } else {
+        goalBadgeEl.className = 'px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30';
+        goalFillEl.className = 'h-full rounded-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all duration-500';
+        goalRemEl.innerText = `Còn thiếu ${formatVND(goalAmount - monthlyRevenue)} để đạt mục tiêu tháng`;
+      }
+
+      // Progress comparison bar
+      const maxFin = Math.max(monthlyRevenue, monthlyExpense, 1);
+      const revPct = Math.min(100, Math.round((monthlyRevenue / maxFin) * 100));
+      const expPct = Math.min(100, Math.round((monthlyExpense / maxFin) * 100));
+      document.getElementById('barRevVal').innerText = formatVND(monthlyRevenue);
+      document.getElementById('barExpVal').innerText = formatVND(monthlyExpense);
+      document.getElementById('barRevFill').style.width = `${revPct}%`;
+      document.getElementById('barExpFill').style.width = `${expPct}%`;
+
+      // Sessions statistics for the month
+      const monthlySessions = appData.sessions.filter(s => s.dateTime.startsWith(targetMonth));
+      const completedCount = monthlySessions.filter(s => s.status === 'completed').length;
+      const cancelledCount = monthlySessions.filter(s => s.status === 'cancelled_charge').length;
+      const reschedCount = monthlySessions.filter(s => s.status === 'rescheduled').length;
+
+      document.getElementById('dashTotalSessions').innerText = `${monthlySessions.length} buổi`;
+      document.getElementById('dashCompletedSessions').innerText = `${completedCount} buổi`;
+      document.getElementById('dashCancelledSessions').innerText = `${cancelledCount} buổi`;
+      document.getElementById('dashRescheduledSessions').innerText = `${reschedCount} buổi`;
+
+      // Quick Alert 1: Low sessions
+      document.getElementById('lowSessionsCountBadge').innerText = lowSessionClients.length;
+      const lowSessionsList = document.getElementById('lowSessionsList');
+      if (lowSessionClients.length === 0) {
+        lowSessionsList.innerHTML = `<div class="py-4 text-center text-xs text-slate-500">Tất cả học viên còn nhiều buổi tập</div>`;
+      } else {
+        lowSessionsList.innerHTML = lowSessionClients.map(c => `
+          <div class="py-2.5 flex items-center justify-between text-xs">
+            <div>
+              <p class="font-bold text-white">${c.name} <span class="text-[10px] text-slate-400">(${c.phone})</span></p>
+              <p class="text-[11px] text-slate-400">${c.packageName}</p>
+            </div>
+            <div class="text-right">
+              <span class="inline-block px-2 py-0.5 rounded font-black text-amber-400 bg-amber-500/10 border border-amber-500/20">
+                Còn ${c.remaining} / ${c.total} buổi
+              </span>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Quick Alert 2: Debt clients
+      document.getElementById('debtClientsCountBadge').innerText = debtClients.length;
+      const debtClientsList = document.getElementById('debtClientsList');
+      if (debtClients.length === 0) {
+        debtClientsList.innerHTML = `<div class="py-4 text-center text-xs text-slate-500">Không có học viên nào nợ học phí</div>`;
+      } else {
+        debtClientsList.innerHTML = debtClients.map(c => `
+          <div class="py-2.5 flex items-center justify-between text-xs">
+            <div>
+              <p class="font-bold text-white">${c.name} <span class="text-[10px] text-slate-400">(${c.phone})</span></p>
+              <p class="text-[11px] text-rose-400 font-bold">Nợ: ${formatVND(c.debt)}</p>
+            </div>
+            <button onclick="openPayDebtModal('${c.id}')" class="px-2.5 py-1 bg-emerald-500/15 hover:bg-emerald-500 text-emerald-400 hover:text-white border border-emerald-500/30 rounded-lg text-xs font-bold transition flex items-center gap-1">
+              <i class="fa-solid fa-money-bill"></i> Thu nợ
+            </button>
+          </div>
+        `).join('');
+      }
+
+      // Render Chart.js Monthly Revenue Trend
+      renderRevenueTrendChart();
+    }
+
+    // Chart.js Revenue Trend Chart instance
+    let revenueTrendChartInstance = null;
+
+    function renderRevenueTrendChart() {
+      const canvas = document.getElementById('revenueTrendChart');
+      if (!canvas || typeof Chart === 'undefined') return;
+
+      // Group transactions by month (YYYY-MM)
+      const monthMap = {};
+
+      // Ensure last 6 months exist in order
+      const defaultMonths = ['2026-06', '2026-07', '2026-08', '2026-09', '2026-10', '2026-11'];
+      defaultMonths.forEach(m => {
+        monthMap[m] = { income: 0, expense: 0 };
+      });
+
+      // Aggregate all recorded transactions
+      appData.transactions.forEach(t => {
+        if (!t.date) return;
+        const m = t.date.slice(0, 7);
+        if (!monthMap[m]) {
+          monthMap[m] = { income: 0, expense: 0 };
+        }
+        const amt = Number(t.amount || 0);
+        if (t.type === 'income') {
+          monthMap[m].income += amt;
+        } else {
+          monthMap[m].expense += amt;
+        }
+      });
+
+      // Sort chronological
+      const sortedMonths = Object.keys(monthMap).sort();
+      // Keep up to last 8 months for clean visualization
+      const displayMonths = sortedMonths.slice(-8);
+
+      const labels = displayMonths.map(m => {
+        const [y, mon] = m.split('-');
+        return `T${parseInt(mon, 10)}/${y}`;
+      });
+
+      const incomeData = displayMonths.map(m => monthMap[m].income);
+      const expenseData = displayMonths.map(m => monthMap[m].expense);
+
+      if (revenueTrendChartInstance) {
+        revenueTrendChartInstance.destroy();
+      }
+
+      const ctx = canvas.getContext('2d');
+
+      // Gradients for line fill
+      const gradientIncome = ctx.createLinearGradient(0, 0, 0, 260);
+      gradientIncome.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+      gradientIncome.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+      const gradientExpense = ctx.createLinearGradient(0, 0, 0, 260);
+      gradientExpense.addColorStop(0, 'rgba(244, 63, 94, 0.2)');
+      gradientExpense.addColorStop(1, 'rgba(244, 63, 94, 0.0)');
+
+      revenueTrendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Doanh Thu Thực Thu',
+              data: incomeData,
+              borderColor: '#10b981',
+              backgroundColor: gradientIncome,
+              borderWidth: 3,
+              fill: true,
+              tension: 0.35,
+              pointBackgroundColor: '#10b981',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+              pointRadius: 4.5,
+              pointHoverRadius: 7
+            },
+            {
+              label: 'Chi Phí Vận Hành',
+              data: expenseData,
+              borderColor: '#f43f5e',
+              backgroundColor: gradientExpense,
+              borderWidth: 2.2,
+              borderDash: [5, 4],
+              fill: true,
+              tension: 0.35,
+              pointBackgroundColor: '#f43f5e',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+              pointRadius: 3.5,
+              pointHoverRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: '#151d2e',
+              titleColor: '#f1f5f9',
+              bodyColor: '#cbd5e1',
+              borderColor: '#28354d',
+              borderWidth: 1,
+              padding: 10,
+              boxPadding: 4,
+              usePointStyle: true,
+              callbacks: {
+                label: function(context) {
+                  const val = context.raw || 0;
+                  return ` ${context.dataset.label}: ${formatVND(val)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                color: 'rgba(40, 53, 77, 0.35)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#8e9eb5',
+                font: {
+                  size: 11,
+                  weight: '600'
+                }
+              }
+            },
+            y: {
+              grid: {
+                color: 'rgba(40, 53, 77, 0.45)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#8e9eb5',
+                font: {
+                  size: 10
+                },
+                callback: function(value) {
+                  if (value >= 1000000) {
+                    return (value / 1000000).toFixed(0) + ' tr';
+                  }
+                  return value;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ==============================================================
+    // TAB 2: RENDER CLIENTS & CONTRACTS
+    // ==============================================================
+    function setClientFilter(filter) {
+      currentClientFilter = filter;
+      const btns = {
+        all: document.getElementById('btnFilterClientAll'),
+        debt: document.getElementById('btnFilterClientDebt'),
+        low: document.getElementById('btnFilterClientLow')
+      };
+
+      Object.keys(btns).forEach(k => {
+        if (k === filter) {
+          btns[k].className = 'filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 text-white transition whitespace-nowrap';
+        } else {
+          btns[k].className = 'filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1e293d] text-slate-300 hover:text-white transition whitespace-nowrap';
+        }
+      });
+
+      renderClientsList();
+    }
+
+    function renderClientsList() {
+      const search = (document.getElementById('clientSearchInput')?.value || '').toLowerCase().trim();
+      const grid = document.getElementById('clientsGrid');
+      if (!grid) return;
+
+      // Update counters
+      const allCount = appData.clients.length;
+      const debtCount = appData.clients.filter(c => (c.contract.totalPrice - c.contract.paidAmount) > 0).length;
+      const lowCount = appData.clients.filter(c => (c.contract.totalSessions - c.contract.completedSessions) <= 3).length;
+
+      document.getElementById('countClientAll').innerText = allCount;
+      document.getElementById('countClientDebt').innerText = debtCount;
+      document.getElementById('countClientLow').innerText = lowCount;
+
+      let filtered = appData.clients.filter(c => {
+        const pt = appData.pts.find(p => p.id === c.ptId);
+        const ptName = pt ? pt.name.toLowerCase() : '';
+        const matchSearch = c.name.toLowerCase().includes(search) || c.phone.includes(search) || ptName.includes(search);
+        if (!matchSearch) return false;
+
+        const debt = Math.max(0, c.contract.totalPrice - c.contract.paidAmount);
+        const remaining = Math.max(0, c.contract.totalSessions - c.contract.completedSessions);
+
+        if (currentClientFilter === 'debt') return debt > 0;
+        if (currentClientFilter === 'low') return remaining <= 3;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-12 text-center text-slate-500 bg-[#151d2e] rounded-2xl border border-[#28354d]">
+            <i class="fa-solid fa-user-slash text-4xl mb-3 text-slate-600"></i>
+            <p class="text-sm">Không tìm thấy học viên nào phù hợp</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(c => {
+        const pkg = c.contract;
+        const pt = appData.pts.find(p => p.id === c.ptId);
+        const remainingSessions = Math.max(0, pkg.totalSessions - pkg.completedSessions);
+        const remainingDebt = Math.max(0, pkg.totalPrice - pkg.paidAmount);
+        const progressPct = pkg.totalSessions > 0 ? Math.min(100, Math.round((pkg.completedSessions / pkg.totalSessions) * 100)) : 0;
+
+        const isLow = remainingSessions <= 3;
+        const hasDebt = remainingDebt > 0;
+
+        return `
+          <div class="bg-[#151d2e] border border-[#28354d] hover:border-[#3b5073] rounded-2xl p-5 shadow-lg space-y-4 transition flex flex-col justify-between">
+            <!-- Client Top: Avatar, Name & PT -->
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center space-x-3">
+                  <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-slate-700 to-slate-600 border border-[#28354d] flex items-center justify-center text-white font-extrabold text-base shadow">
+                    ${c.name.split(' ').slice(-1)[0][0]}
+                  </div>
+                  <div>
+                    <h3 class="font-black text-white text-base leading-tight">${c.name}</h3>
+                    <p class="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+                      <i class="fa-solid fa-phone text-[10px] text-emerald-400"></i> ${c.phone}
+                    </p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <span class="inline-block px-2.5 py-1 rounded-lg text-xs font-bold bg-[#1e293d] border border-[#28354d] text-slate-200">
+                    <i class="fa-solid fa-user-tie text-emerald-400 mr-1"></i> ${pt ? pt.name : 'Chưa phân công'}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Health & Goal Note -->
+              <div class="mt-3 bg-[#0b0f19] border border-[#28354d] rounded-xl px-3 py-2 text-xs text-slate-300">
+                <span class="text-emerald-400 font-semibold"><i class="fa-solid fa-bullseye mr-1"></i> Mục tiêu:</span>
+                ${c.goal || 'Tăng cường sức khỏe thể chất & thể lực'}
+              </div>
+
+              <!-- Package Progress Card -->
+              <div class="mt-4 bg-[#1a2336] border border-[#28354d] rounded-xl p-3.5 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-white text-xs flex items-center gap-1.5">
+                    <i class="fa-solid fa-ticket text-emerald-400"></i> ${pkg.packageName}
+                  </h4>
+                  <span class="text-[11px] text-slate-400">Hạn: ${formatDateDisplay(pkg.endDate)}</span>
+                </div>
+
+                <!-- Session progress bar -->
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="text-slate-400">Tiến độ buổi tập:</span>
+                    <span class="font-bold ${isLow ? 'text-amber-400' : 'text-emerald-400'}">
+                      Đã tập: ${pkg.completedSessions} / ${pkg.totalSessions} buổi (Còn ${remainingSessions})
+                    </span>
+                  </div>
+                  <div class="w-full bg-[#0b0f19] rounded-full h-2.5 overflow-hidden">
+                    <div class="h-2.5 rounded-full ${isLow ? 'bg-amber-400' : 'bg-emerald-500'} transition-all duration-300" style="width: ${progressPct}%"></div>
+                  </div>
+                </div>
+
+                <!-- Finance detail -->
+                <div class="pt-2 border-t border-[#28354d]/70 grid grid-cols-3 gap-2 text-center text-xs">
+                  <div>
+                    <span class="text-[10px] text-slate-400 block uppercase">Giá trị gói</span>
+                    <span class="font-bold text-white">${formatVND(pkg.totalPrice)}</span>
+                  </div>
+                  <div>
+                    <span class="text-[10px] text-slate-400 block uppercase">Đã thanh toán</span>
+                    <span class="font-bold text-emerald-400">${formatVND(pkg.paidAmount)}</span>
+                  </div>
+                  <div>
+                    <span class="text-[10px] text-slate-400 block uppercase">Còn nợ</span>
+                    <span class="font-extrabold ${hasDebt ? 'text-rose-400' : 'text-slate-400'}">
+                      ${formatVND(remainingDebt)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons Footer -->
+            <div class="mt-4 pt-3 border-t border-[#28354d] flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5">
+                <button onclick="quickCheckInForClient('${c.id}')" class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1 transition shadow-sm">
+                  <i class="fa-solid fa-calendar-check"></i> Điểm danh
+                </button>
+                ${hasDebt ? `
+                  <button onclick="openPayDebtModal('${c.id}')" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold text-xs flex items-center gap-1 transition shadow-sm">
+                    <i class="fa-solid fa-money-bill-wave"></i> Thu nợ
+                  </button>
+                ` : `
+                  <span class="px-2 py-1 rounded text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <i class="fa-solid fa-check"></i> Đủ tiền
+                  </span>
+                `}
+              </div>
+              <div class="flex items-center gap-1">
+                <button onclick="deleteClient('${c.id}')" title="Xóa học viên" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Modal Add Client & Contract Handler
+    function calculateRemainingDebt() {
+      const price = Number(document.getElementById('packagePrice').value || 0);
+      const paid = Number(document.getElementById('paidAmount').value || 0);
+      const debt = Math.max(0, price - paid);
+      document.getElementById('calculatedDebt').value = formatVND(debt);
+    }
+
+    function saveClientContract(e) {
+      e.preventDefault();
+      const name = document.getElementById('clientName').value.trim();
+      const phone = document.getElementById('clientPhone').value.trim();
+      const ptId = document.getElementById('clientPT').value;
+      const goal = document.getElementById('clientGoal').value.trim();
+      const packageName = document.getElementById('packageName').value.trim();
+      const totalSessions = parseInt(document.getElementById('totalSessions').value, 10);
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const totalPrice = Number(document.getElementById('packagePrice').value);
+      const paidAmount = Number(document.getElementById('paidAmount').value);
+      const paymentMethod = document.getElementById('paymentMethod').value;
+
+      if (!name || !phone || !packageName || isNaN(totalSessions) || totalSessions <= 0 || isNaN(totalPrice)) {
+        showToast('Vui lòng điền đầy đủ các thông tin bắt buộc!', 'error');
+        return;
+      }
+
+      if (paidAmount > totalPrice) {
+        showToast('Số tiền thanh toán không được lớn hơn tổng giá trị gói!', 'warning');
+        return;
+      }
+
+      const newClientId = 'c_' + Date.now();
+      const newClient = {
+        id: newClientId,
+        name,
+        phone,
+        ptId,
+        goal,
+        contract: {
+          packageName,
+          totalSessions,
+          completedSessions: 0,
+          startDate,
+          endDate,
+          totalPrice,
+          paidAmount
+        }
+      };
+
+      appData.clients.unshift(newClient);
+
+      // If customer made initial payment > 0, automatically generate a revenue transaction in Cashflow!
+      if (paidAmount > 0) {
+        const txId = 'TX-' + Math.floor(1000 + Math.random() * 9000);
+        const newTx = {
+          id: txId,
+          date: startDate || new Date().toISOString().split('T')[0],
+          type: 'income',
+          category: 'contract',
+          description: `Thu tiền hợp đồng gói ${packageName} - HV: ${name}`,
+          amount: paidAmount,
+          method: paymentMethod
+        };
+        appData.transactions.unshift(newTx);
+      }
+
+      saveData();
+      refreshAllViews();
+      closeModal('modalClient');
+      document.getElementById('formClient').reset();
+      showToast(`Đã thêm thành công học viên ${name}!`, 'success');
+    }
+
+    function deleteClient(clientId) {
+      const client = appData.clients.find(c => c.id === clientId);
+      if (!client) return;
+
+      if (!confirm(`Bạn có chắc chắn muốn xóa học viên "${client.name}" và toàn bộ dữ liệu hợp đồng liên quan?`)) {
+        return;
+      }
+
+      appData.clients = appData.clients.filter(c => c.id !== clientId);
+      saveData();
+      refreshAllViews();
+      showToast(`Đã xóa học viên ${client.name}`, 'info');
+    }
+
+    // Modal Pay Debt Handler
+    function openPayDebtModal(clientId) {
+      const client = appData.clients.find(c => c.id === clientId);
+      if (!client) return;
+
+      const debt = Math.max(0, client.contract.totalPrice - client.contract.paidAmount);
+      if (debt <= 0) {
+        showToast('Học viên này đã thanh toán đủ 100%!', 'info');
+        return;
+      }
+
+      document.getElementById('debtClientId').value = clientId;
+      document.getElementById('debtClientNameDisplay').innerText = client.name;
+      document.getElementById('debtClientPackageDisplay').innerText = client.contract.packageName;
+      document.getElementById('debtCurrentAmountDisplay').innerText = formatVND(debt);
+      document.getElementById('debtPayAmount').value = debt;
+      document.getElementById('debtPayAmount').max = debt;
+
+      openModal('modalPayDebt');
+    }
+
+    function submitPayDebt(e) {
+      e.preventDefault();
+      const clientId = document.getElementById('debtClientId').value;
+      const amount = Number(document.getElementById('debtPayAmount').value);
+      const method = document.getElementById('debtPayMethod').value;
+
+      const client = appData.clients.find(c => c.id === clientId);
+      if (!client) return;
+
+      const currentDebt = Math.max(0, client.contract.totalPrice - client.contract.paidAmount);
+      if (isNaN(amount) || amount <= 0 || amount > currentDebt) {
+        showToast('Số tiền thu không hợp lệ hoặc vượt quá số nợ!', 'error');
+        return;
+      }
+
+      // Update client contract
+      client.contract.paidAmount += amount;
+
+      // Automatically generate income transaction in Cashflow!
+      const txId = 'TX-' + Math.floor(1000 + Math.random() * 9000);
+      const today = new Date().toISOString().split('T')[0];
+      const newTx = {
+        id: txId,
+        date: today,
+        type: 'income',
+        category: 'contract',
+        description: `Thu nợ hợp đồng gói ${client.contract.packageName} - HV: ${client.name}`,
+        amount: amount,
+        method: method
+      };
+      appData.transactions.unshift(newTx);
+
+      saveData();
+      refreshAllViews();
+      closeModal('modalPayDebt');
+      showToast(`Đã thu ${formatVND(amount)} từ học viên ${client.name} & tự động ghi sổ quỹ!`, 'success');
+    }
+
+    // ==============================================================
+    // TAB 3: RENDER SESSIONS & CHECK-IN
+    // ==============================================================
+    function onSessionClientSelected() {
+      const clientId = document.getElementById('sessionClientId')?.value;
+      const client = appData.clients.find(c => c.id === clientId);
+      const box = document.getElementById('sessionClientInfoBox');
+      const sessionPTId = document.getElementById('sessionPTId');
+
+      if (!client) {
+        if (box) box.classList.add('hidden');
+        return;
+      }
+
+      if (box) {
+        box.classList.remove('hidden');
+        document.getElementById('sessBoxPkgName').innerText = client.contract.packageName;
+        const rem = Math.max(0, client.contract.totalSessions - client.contract.completedSessions);
+        document.getElementById('sessBoxRemaining').innerText = `${rem} / ${client.contract.totalSessions} buổi`;
+      }
+
+      // Default the PT to client's assigned PT
+      if (sessionPTId && client.ptId) {
+        sessionPTId.value = client.ptId;
+      }
+    }
+
+    function quickCheckInForClient(clientId) {
+      openModal('modalSession');
+      const select = document.getElementById('sessionClientId');
+      if (select) {
+        select.value = clientId;
+        onSessionClientSelected();
+      }
+    }
+
+    function renderSessionsList() {
+      const dateFilter = document.getElementById('sessionFilterDate')?.value;
+      const ptFilter = document.getElementById('sessionFilterPT')?.value || 'all';
+      const clientFilter = document.getElementById('sessionFilterClient')?.value || 'all';
+      const statusFilter = document.getElementById('sessionFilterStatus')?.value || 'all';
+
+      const tbody = document.getElementById('sessionsTableBody');
+      const emptyState = document.getElementById('sessionsEmptyState');
+      if (!tbody) return;
+
+      let filtered = appData.sessions.filter(s => {
+        if (dateFilter && !s.dateTime.startsWith(dateFilter)) return false;
+        if (ptFilter !== 'all' && s.ptId !== ptFilter) return false;
+        if (clientFilter !== 'all' && s.clientId !== clientFilter) return false;
+        if (statusFilter !== 'all' && s.status !== statusFilter) return false;
+        return true;
+      });
+
+      // Sort by newest datetime first
+      filtered.sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
+
+      document.getElementById('sessionsTotalBadge').innerText = `Hiển thị: ${filtered.length} buổi`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      tbody.innerHTML = filtered.map(s => {
+        let badgeHtml = '';
+        if (s.status === 'completed') {
+          badgeHtml = `<span class="badge-completed px-2 py-0.5 rounded text-[11px] font-bold"><i class="fa-solid fa-circle-check mr-1"></i> Hoàn thành</span>`;
+        } else if (s.status === 'cancelled_charge') {
+          badgeHtml = `<span class="badge-cancelled px-2 py-0.5 rounded text-[11px] font-bold"><i class="fa-solid fa-circle-xmark mr-1"></i> Khách hủy (Trừ buổi)</span>`;
+        } else {
+          badgeHtml = `<span class="badge-rescheduled px-2 py-0.5 rounded text-[11px] font-bold"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Dời lịch</span>`;
+        }
+
+        return `
+          <tr class="hover:bg-[#1a2336]/60 transition">
+            <td class="px-4 py-3 font-semibold text-slate-200 whitespace-nowrap">${formatDateTimeDisplay(s.dateTime)}</td>
+            <td class="px-4 py-3 font-bold text-white whitespace-nowrap">${s.clientName}</td>
+            <td class="px-4 py-3 text-slate-400 whitespace-nowrap">${s.packageName}</td>
+            <td class="px-4 py-3 font-semibold text-emerald-400 whitespace-nowrap">
+              <i class="fa-solid fa-user-tie text-[10px] mr-1"></i> ${s.ptName}
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">${badgeHtml}</td>
+            <td class="px-4 py-3 text-slate-300 max-w-xs truncate" title="${s.notes || ''}">
+              ${s.notes || '<span class="text-slate-500 italic">Không có ghi chú</span>'}
+            </td>
+            <td class="px-4 py-3 text-right whitespace-nowrap">
+              <button onclick="undoOrDeleteSession('${s.id}')" title="Xóa hoặc hoàn tác buổi tập này" class="px-2 py-1 rounded bg-[#1e293d] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-[#28354d] text-xs font-semibold transition">
+                <i class="fa-solid fa-rotate-left mr-1"></i> Hoàn tác
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function saveSession(e) {
+      e.preventDefault();
+      const clientId = document.getElementById('sessionClientId').value;
+      const ptId = document.getElementById('sessionPTId').value;
+      const dateTime = document.getElementById('sessionDateTime').value;
+      const status = document.getElementById('sessionStatus').value;
+      const notes = document.getElementById('sessionNotes').value.trim();
+
+      const client = appData.clients.find(c => c.id === clientId);
+      const pt = appData.pts.find(p => p.id === ptId);
+
+      if (!client || !pt || !dateTime) {
+        showToast('Vui lòng điền đầy đủ thông tin điểm danh!', 'error');
+        return;
+      }
+
+      // Check if client package has sessions remaining if status charges a session
+      const remaining = client.contract.totalSessions - client.contract.completedSessions;
+      if ((status === 'completed' || status === 'cancelled_charge') && remaining <= 0) {
+        showToast('Học viên đã sử dụng hết số buổi của gói hợp đồng! Vui lòng gia hạn thêm.', 'error');
+        return;
+      }
+
+      // Deduct 1 session if status is completed or cancelled_charge
+      if (status === 'completed' || status === 'cancelled_charge') {
+        client.contract.completedSessions += 1;
+      }
+
+      const newSession = {
+        id: 's_' + Date.now(),
+        clientId: client.id,
+        clientName: client.name,
+        packageName: client.contract.packageName,
+        ptId: pt.id,
+        ptName: pt.name,
+        dateTime,
+        status,
+        notes
+      };
+
+      appData.sessions.unshift(newSession);
+
+      saveData();
+      refreshAllViews();
+      closeModal('modalSession');
+      document.getElementById('formSession').reset();
+      showToast(`Điểm danh thành công cho học viên ${client.name}!`, 'success');
+    }
+
+    function undoOrDeleteSession(sessionId) {
+      const session = appData.sessions.find(s => s.id === sessionId);
+      if (!session) return;
+
+      if (!confirm(`Bạn có chắc chắn muốn xóa/hoàn tác buổi tập ngày ${formatDateTimeDisplay(session.dateTime)} của học viên "${session.clientName}"?`)) {
+        return;
+      }
+
+      // If the session had charged a session from the contract, refund it back!
+      if (session.status === 'completed' || session.status === 'cancelled_charge') {
+        const client = appData.clients.find(c => c.id === session.clientId);
+        if (client && client.contract.completedSessions > 0) {
+          client.contract.completedSessions -= 1;
+          showToast(`Đã hoàn lại 1 buổi cho gói của ${client.name}`, 'info');
+        }
+      }
+
+      appData.sessions = appData.sessions.filter(s => s.id !== sessionId);
+      saveData();
+      refreshAllViews();
+      showToast('Đã xóa buổi tập thành công!', 'success');
+    }
+
+    // ==============================================================
+    // MONTHLY REVENUE GOAL MODAL HANDLERS
+    // ==============================================================
+    function openRevenueGoalModal() {
+      const [year, month] = currentGlobalMonth.split('-');
+      document.getElementById('goalModalMonthLabel').innerText = `Tháng ${month}/${year}`;
+      const currentGoal = Number((appData.revenueGoals && appData.revenueGoals[currentGlobalMonth]) || 50000000);
+      document.getElementById('revenueGoalInput').value = currentGoal;
+      openModal('modalRevenueGoal');
+    }
+
+    function saveRevenueGoal(e) {
+      e.preventDefault();
+      const targetVal = Number(document.getElementById('revenueGoalInput').value);
+      if (isNaN(targetVal) || targetVal < 0) {
+        showToast('Mục tiêu doanh thu không hợp lệ!', 'error');
+        return;
+      }
+      if (!appData.revenueGoals) appData.revenueGoals = {};
+      appData.revenueGoals[currentGlobalMonth] = targetVal;
+      saveData();
+      refreshAllViews();
+      closeModal('modalRevenueGoal');
+      showToast(`Đã cập nhật mục tiêu doanh thu tháng: ${formatVND(targetVal)}`, 'success');
+    }
+
+    // ==============================================================
+    // TAB 4: RENDER PT & PAYROLL (CUSTOMIZABLE WORKDAYS, % SESSION, KPI)
+    // ==============================================================
+    function togglePTSessionPayMode() {
+      const mode = document.getElementById('ptSessionPayMode').value;
+      const percentBox = document.getElementById('ptPercentSessionFields');
+      const rateLabel = document.getElementById('ptSessionRateLabel');
+      if (mode === 'fixed') {
+        percentBox.classList.add('opacity-40', 'pointer-events-none');
+        rateLabel.innerText = 'Đơn giá cố định/buổi dạy (VNĐ) *';
+      } else {
+        percentBox.classList.remove('opacity-40', 'pointer-events-none');
+        rateLabel.innerText = 'Đơn giá buổi mặc định / dự phòng (VNĐ) *';
+      }
+    }
+
+    function openEditPTModal(ptId) {
+      const pt = appData.pts.find(p => p.id === ptId);
+      if (!pt) return;
+      document.getElementById('ptEditId').value = pt.id;
+      document.getElementById('modalPTTitle').innerHTML = `<i class="fa-solid fa-sliders text-emerald-400"></i> Cấu Hình Lương HLV: ${pt.name}`;
+      document.getElementById('ptName').value = pt.name;
+      document.getElementById('ptPhone').value = pt.phone;
+      document.getElementById('ptBaseSalary').value = pt.baseSalary ?? 5000000;
+      document.getElementById('ptStandardWorkDays').value = pt.standardWorkDays ?? 26;
+      document.getElementById('ptDefaultWorkDays').value = pt.defaultWorkDays ?? 26;
+      document.getElementById('ptSessionPayMode').value = pt.sessionPayMode ?? 'percent';
+      document.getElementById('ptSessionTeachPercent').value = pt.sessionTeachPercent ?? 30;
+      document.getElementById('ptSessionTeachBonusPercent').value = pt.sessionTeachBonusPercent ?? 5;
+      document.getElementById('ptSessionRate').value = pt.sessionRate ?? 180000;
+      document.getElementById('ptSalesKpiTarget').value = pt.salesKpiTarget ?? 30000000;
+      document.getElementById('ptCommissionRate').value = pt.commissionRate ?? 8;
+      document.getElementById('ptKpiCommissionRate').value = pt.kpiCommissionRate ?? 12;
+      togglePTSessionPayMode();
+      openModal('modalPT');
+    }
+
+    function openAddPTModal() {
+      document.getElementById('ptEditId').value = '';
+      document.getElementById('formPT').reset();
+      document.getElementById('modalPTTitle').innerHTML = `<i class="fa-solid fa-user-tie text-emerald-400"></i> Thêm Huấn Luyện Viên (PT)`;
+      togglePTSessionPayMode();
+      openModal('modalPT');
+    }
+
+    function savePT(e) {
+      e.preventDefault();
+      const editId = document.getElementById('ptEditId').value.trim();
+      const name = document.getElementById('ptName').value.trim();
+      const phone = document.getElementById('ptPhone').value.trim();
+      const baseSalary = Number(document.getElementById('ptBaseSalary').value);
+      const standardWorkDays = Number(document.getElementById('ptStandardWorkDays').value) || 26;
+      const defaultWorkDays = Number(document.getElementById('ptDefaultWorkDays').value);
+      const sessionPayMode = document.getElementById('ptSessionPayMode').value;
+      const sessionTeachPercent = Number(document.getElementById('ptSessionTeachPercent').value);
+      const sessionTeachBonusPercent = Number(document.getElementById('ptSessionTeachBonusPercent').value);
+      const sessionRate = Number(document.getElementById('ptSessionRate').value);
+      const salesKpiTarget = Number(document.getElementById('ptSalesKpiTarget').value);
+      const commissionRate = Number(document.getElementById('ptCommissionRate').value);
+      const kpiCommissionRate = Number(document.getElementById('ptKpiCommissionRate').value);
+
+      if (!name || !phone || isNaN(baseSalary) || isNaN(sessionRate)) {
+        showToast('Vui lòng điền đầy đủ thông tin HLV!', 'error');
+        return;
+      }
+
+      const ptPayload = {
+        id: editId || ('pt_' + Date.now()),
+        name,
+        phone,
+        baseSalary,
+        standardWorkDays,
+        defaultWorkDays: isNaN(defaultWorkDays) ? standardWorkDays : defaultWorkDays,
+        sessionPayMode,
+        sessionTeachPercent: isNaN(sessionTeachPercent) ? 30 : sessionTeachPercent,
+        sessionTeachBonusPercent: isNaN(sessionTeachBonusPercent) ? 0 : sessionTeachBonusPercent,
+        sessionRate,
+        salesKpiTarget: isNaN(salesKpiTarget) ? 0 : salesKpiTarget,
+        commissionRate: isNaN(commissionRate) ? 0 : commissionRate,
+        kpiCommissionRate: isNaN(kpiCommissionRate) ? commissionRate : kpiCommissionRate
+      };
+
+      if (editId) {
+        const idx = appData.pts.findIndex(p => p.id === editId);
+        if (idx !== -1) {
+          appData.pts[idx] = ptPayload;
+        }
+      } else {
+        appData.pts.push(ptPayload);
+      }
+
+      document.getElementById('ptEditId').value = '';
+      saveData();
+      refreshAllViews();
+      closeModal('modalPT');
+      document.getElementById('formPT').reset();
+      showToast(editId ? `Đã cập nhật cấu hình lương HLV ${name}!` : `Đã thêm HLV ${name}!`, 'success');
+    }
+
+    function renderPayrollList() {
+      const payrollMonth = document.getElementById('payrollMonthSelect')?.value || currentGlobalMonth;
+      const grid = document.getElementById('payrollGrid');
+      if (!grid) return;
+
+      if (appData.pts.length === 0) {
+        grid.innerHTML = `
+          <div class="p-8 text-center text-slate-500 bg-[#151d2e] rounded-2xl border border-[#28354d]">
+            <i class="fa-solid fa-user-xmark text-4xl mb-3 text-slate-600"></i>
+            <p>Chưa có Huấn luyện viên nào trong hệ thống</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = appData.pts.map(pt => {
+        // Retrieve or initialize monthly adjustments for this PT
+        const adjKey = `${pt.id}_${payrollMonth}`;
+        const standardDaysDefault = pt.standardWorkDays ?? 26;
+        const defaultWorkDays = pt.defaultWorkDays ?? standardDaysDefault;
+        const adj = appData.payrollAdjustments[adjKey] || {
+          workDays: defaultWorkDays,
+          standardWorkDays: standardDaysDefault,
+          monthlySales: 0,
+          sessionPercentOverride: null,
+          commissionOverride: null,
+          bonus: 0,
+          fine: 0,
+          paid: false
+        };
+
+        const actualWorkDays = adj.workDays !== undefined ? Number(adj.workDays) : defaultWorkDays;
+        const stdWorkDays = adj.standardWorkDays !== undefined ? Number(adj.standardWorkDays) : standardDaysDefault;
+        const actualBaseSalary = stdWorkDays > 0 ? Math.round((pt.baseSalary || 0) * (actualWorkDays / stdWorkDays)) : (pt.baseSalary || 0);
+
+        const monthlySales = Number(adj.monthlySales || 0);
+        const kpiTarget = Number(pt.salesKpiTarget || 0);
+        const isKpiMet = kpiTarget > 0 ? monthlySales >= kpiTarget : true;
+
+        // Count sessions taught by this PT in the selected month & total client session value
+        const ptSessions = appData.sessions.filter(s =>
+          s.ptId === pt.id &&
+          s.dateTime.startsWith(payrollMonth) &&
+          (s.status === 'completed' || s.status === 'cancelled_charge')
+        );
+
+        const taughtCount = ptSessions.length;
+        let totalClientSessionValue = 0;
+        ptSessions.forEach(s => {
+          const client = appData.clients.find(c => c.id === s.clientId);
+          if (client && client.contract && client.contract.totalSessions > 0) {
+            totalClientSessionValue += (client.contract.totalPrice / client.contract.totalSessions);
+          } else {
+            totalClientSessionValue += (pt.sessionRate || 0) * 3; // fallback estimation if contract missing
+          }
+        });
+
+        // Session Pay calculation
+        const baseTeachPct = Number(pt.sessionTeachPercent ?? 30);
+        const bonusTeachPct = isKpiMet ? Number(pt.sessionTeachBonusPercent ?? 0) : 0;
+        const autoTeachPct = baseTeachPct + bonusTeachPct;
+        const effectiveTeachPct = (adj.sessionPercentOverride !== null && adj.sessionPercentOverride !== undefined && adj.sessionPercentOverride !== '')
+          ? Number(adj.sessionPercentOverride)
+          : autoTeachPct;
+
+        let sessionEarnings = 0;
+        if ((pt.sessionPayMode || 'percent') === 'percent') {
+          sessionEarnings = Math.round(totalClientSessionValue * (effectiveTeachPct / 100));
+        } else {
+          sessionEarnings = taughtCount * (pt.sessionRate || 0);
+        }
+
+        // Commission calculation based on KPI
+        const effectiveCommRate = isKpiMet ? Number(pt.kpiCommissionRate ?? pt.commissionRate ?? 10) : Number(pt.commissionRate ?? 8);
+        const autoCommission = Math.round(monthlySales * (effectiveCommRate / 100));
+        const finalCommission = (adj.commissionOverride !== null && adj.commissionOverride !== undefined && adj.commissionOverride !== '')
+          ? Number(adj.commissionOverride)
+          : (adj.commission !== undefined && adj.monthlySales === undefined ? Number(adj.commission) : autoCommission);
+
+        const totalSalary = actualBaseSalary + sessionEarnings + finalCommission + Number(adj.bonus || 0) - Number(adj.fine || 0);
+
+        return `
+          <div class="bg-[#151d2e] border border-[#28354d] rounded-2xl p-5 shadow-xl space-y-4">
+            <!-- Header: PT Info & Status -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#28354d]">
+              <div class="flex items-center space-x-3">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-extrabold text-base shadow">
+                  ${pt.name.split(' ').slice(-1)[0][0]}
+                </div>
+                <div>
+                  <h3 class="font-black text-white text-base flex items-center gap-2">
+                    ${pt.name}
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isKpiMet ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'}">
+                      ${isKpiMet ? 'Đạt KPI Doanh Số' : 'Chưa Đạt KPI'}
+                    </span>
+                  </h3>
+                  <p class="text-xs text-slate-400 mt-0.5">
+                    <i class="fa-solid fa-phone text-[10px] text-emerald-400 mr-1"></i> ${pt.phone} |
+                    Chế độ buổi: <span class="text-slate-200 font-semibold">${(pt.sessionPayMode || 'percent') === 'percent' ? `${effectiveTeachPct}% giá buổi khách` : `${formatVND(pt.sessionRate)}/buổi`}</span> |
+                    KPI: <span class="text-slate-200 font-semibold">${formatVND(kpiTarget)}</span>
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <button onclick="openEditPTModal('${pt.id}')" class="px-2.5 py-1 rounded-lg bg-[#1e293d] hover:bg-[#28354d] border border-[#28354d] text-slate-200 text-xs font-semibold flex items-center gap-1 transition">
+                  <i class="fa-solid fa-sliders text-emerald-400"></i> Cấu hình
+                </button>
+                ${adj.paid ? `
+                  <span class="badge-paid px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-check"></i> Đã thanh toán lương
+                  </span>
+                ` : `
+                  <span class="badge-unpaid px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-hourglass-half"></i> Chưa chi lương
+                  </span>
+                `}
+              </div>
+            </div>
+
+            <!-- Breakdown Calculations Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+              <!-- 1. Lương cứng theo ngày đi làm -->
+              <div class="bg-[#0b0f19] border border-[#28354d] rounded-xl p-3 space-y-1.5">
+                <span class="text-slate-400 text-[11px] block">Lương cứng (Ngày đi làm)</span>
+                <span class="text-sm font-bold text-white block">${formatVND(actualBaseSalary)}</span>
+                <div class="flex items-center gap-1 text-[10px] text-slate-400">
+                  <span>Đi làm:</span>
+                  <input type="number" min="0" max="31" step="any" value="${actualWorkDays}"
+                    onchange="updatePayrollAdj('${pt.id}', '${payrollMonth}', 'workDays', this.value)"
+                    class="w-12 bg-[#1e293d] border border-[#28354d] rounded px-1.5 py-0.5 text-white font-bold text-center focus:outline-none focus:border-emerald-500">
+                  <span>/ ${stdWorkDays} ngày</span>
+                </div>
+              </div>
+
+              <!-- 2. Tiền buổi dạy theo % giá buổi khách & doanh số -->
+              <div class="bg-[#0b0f19] border border-[#28354d] rounded-xl p-3 space-y-1.5">
+                <span class="text-slate-400 text-[11px] block">Dạy ${taughtCount} buổi (${(pt.sessionPayMode || 'percent') === 'percent' ? `${effectiveTeachPct}%` : 'Cố định'})</span>
+                <span class="text-sm font-bold text-emerald-400 block">${formatVND(sessionEarnings)}</span>
+                ${(pt.sessionPayMode || 'percent') === 'percent' ? `
+                  <div class="flex items-center gap-1 text-[10px] text-slate-400">
+                    <span>Tuỳ chỉnh %:</span>
+                    <input type="number" min="0" max="100" step="any" value="${effectiveTeachPct}"
+                      onchange="updatePayrollAdj('${pt.id}', '${payrollMonth}', 'sessionPercentOverride', this.value)"
+                      class="w-12 bg-[#1e293d] border border-[#28354d] rounded px-1.5 py-0.5 text-emerald-400 font-bold text-center focus:outline-none focus:border-emerald-500">
+                    <span>% (Giá trị: ${formatVND(totalClientSessionValue)})</span>
+                  </div>
+                ` : `<span class="text-[10px] text-slate-500 block">${taughtCount} × ${formatVND(pt.sessionRate)}</span>`}
+              </div>
+
+              <!-- 3. Doanh số tháng đạt được -->
+              <div class="bg-[#0b0f19] border border-[#28354d] rounded-xl p-3 space-y-1.5">
+                <span class="text-slate-400 text-[11px] block">Doanh số tháng (VNĐ)</span>
+                <input type="number" step="1" min="0" value="${monthlySales}"
+                  onchange="updatePayrollAdj('${pt.id}', '${payrollMonth}', 'monthlySales', this.value)"
+                  class="w-full bg-[#1e293d] border border-[#28354d] rounded px-2 py-1 text-xs text-white font-bold focus:outline-none focus:border-emerald-500">
+                <span class="text-[10px] ${isKpiMet ? 'text-emerald-400' : 'text-amber-400'} block">
+                  KPI: ${formatVND(kpiTarget)} (${effectiveCommRate}% HH)
+                </span>
+              </div>
+
+              <!-- 4. Hoa hồng bán gói -->
+              <div class="bg-[#0b0f19] border border-[#28354d] rounded-xl p-3 space-y-1.5">
+                <span class="text-slate-400 text-[11px] block">Hoa hồng (${effectiveCommRate}%)</span>
+                <input type="number" step="1" min="0" value="${finalCommission}"
+                  onchange="updatePayrollAdj('${pt.id}', '${payrollMonth}', 'commissionOverride', this.value)"
+                  title="Tự động tính theo % KPI hoặc nhập tay tuỳ chỉnh"
+                  class="w-full bg-[#1e293d] border border-[#28354d] rounded px-2 py-1 text-xs text-slate-100 font-bold focus:outline-none focus:border-emerald-500">
+                <span class="text-[10px] text-slate-500 block">
+                  Tự tính: ${formatVND(autoCommission)}
+                </span>
+              </div>
+
+              <!-- 5. Thưởng / Phạt -->
+              <div class="bg-[#0b0f19] border border-[#28354d] rounded-xl p-3 space-y-1.5">
+                <span class="text-slate-400 text-[11px] block">Thưởng (+) / Phạt (-)</span>
+                <div class="grid grid-cols-2 gap-1 mt-0.5">
+                  <input type="number" step="1" min="0" placeholder="Thưởng" value="${adj.bonus || 0}"
+                    onchange="updatePayrollAdj('${pt.id}', '${payrollMonth}', 'bonus', this.value)"
+                    title="Tiền thưởng"
+                    class="bg-[#1e293d] border border-[#28354d] rounded px-1.5 py-1 text-xs text-emerald-400 font-semibold focus:outline-none focus:border-emerald-500">
+                  <input type="number" step="1" min="0" placeholder="Phạt" value="${adj.fine || 0}"
+                    onchange="updatePayrollAdj('${pt.id}', '${payrollMonth}', 'fine', this.value)"
+                    title="Tiền phạt"
+                    class="bg-[#1e293d] border border-[#28354d] rounded px-1.5 py-1 text-xs text-rose-400 font-semibold focus:outline-none focus:border-emerald-500">
+                </div>
+                <span class="text-[10px] text-slate-500 block">Tuỳ chỉnh trực tiếp</span>
+              </div>
+            </div>
+
+            <!-- Total and Action -->
+            <div class="pt-3 border-t border-[#28354d] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span class="text-xs text-slate-400">Tổng lương thực nhận:</span>
+                <span class="text-xl font-black text-emerald-400 ml-2">${formatVND(totalSalary)}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                ${adj.paid ? `
+                  <button disabled class="px-4 py-2 rounded-xl bg-slate-800 text-slate-500 text-xs font-bold cursor-not-allowed">
+                    <i class="fa-solid fa-check mr-1"></i> Đã xuất phiếu chi
+                  </button>
+                ` : `
+                  <button onclick="confirmPaySalary('${pt.id}', '${payrollMonth}', ${totalSalary})" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-500/20">
+                    <i class="fa-solid fa-money-check-dollar"></i> Xác Nhận Chi Lương
+                  </button>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updatePayrollAdj(ptId, monthYear, field, val) {
+      const adjKey = `${ptId}_${monthYear}`;
+      const pt = appData.pts.find(p => p.id === ptId);
+      if (!appData.payrollAdjustments[adjKey]) {
+        appData.payrollAdjustments[adjKey] = {
+          workDays: pt ? (pt.defaultWorkDays ?? 26) : 26,
+          standardWorkDays: pt ? (pt.standardWorkDays ?? 26) : 26,
+          monthlySales: 0,
+          sessionPercentOverride: null,
+          commissionOverride: null,
+          bonus: 0,
+          fine: 0,
+          paid: false
+        };
+      }
+      if (field === 'sessionPercentOverride' || field === 'commissionOverride') {
+        appData.payrollAdjustments[adjKey][field] = (val === '' || val === null) ? null : Number(val);
+      } else {
+        appData.payrollAdjustments[adjKey][field] = Number(val || 0);
+      }
+      // If monthlySales changed, clear manual commissionOverride/sessionPercentOverride unless user sets them again
+      if (field === 'monthlySales') {
+        appData.payrollAdjustments[adjKey].commissionOverride = null;
+        appData.payrollAdjustments[adjKey].sessionPercentOverride = null;
+      }
+      saveData();
+      renderPayrollList();
+      renderDashboard();
+    }
+
+    function confirmPaySalary(ptId, monthYear, totalSalary) {
+      const pt = appData.pts.find(p => p.id === ptId);
+      if (!pt) return;
+
+      const [year, month] = monthYear.split('-');
+      if (!confirm(`Xác nhận thanh toán lương tháng ${month}/${year} cho HLV ${pt.name} với số tiền ${formatVND(totalSalary)}?\n\nHệ thống sẽ tự động tạo một phiếu CHI tương ứng bên Sổ Quỹ Thu - Chi.`)) {
+        return;
+      }
+
+      // 1. Mark as paid
+      const adjKey = `${ptId}_${monthYear}`;
+      if (!appData.payrollAdjustments[adjKey]) {
+        appData.payrollAdjustments[adjKey] = { commission: 0, bonus: 0, fine: 0, paid: false };
+      }
+      appData.payrollAdjustments[adjKey].paid = true;
+
+      // 2. Automatically create EXPENSE transaction in Cashflow!
+      const txId = 'TX-' + Math.floor(1000 + Math.random() * 9000);
+      const today = new Date().toISOString().split('T')[0];
+      const newTx = {
+        id: txId,
+        date: today,
+        type: 'expense',
+        category: 'pt_salary',
+        description: `Thanh toán lương tháng ${month}/${year} cho HLV ${pt.name}`,
+        amount: totalSalary,
+        method: 'Chuyển khoản'
+      };
+      appData.transactions.unshift(newTx);
+
+      saveData();
+      refreshAllViews();
+      showToast(`Đã chi lương ${formatVND(totalSalary)} cho HLV ${pt.name} & tạo phiếu chi Sổ quỹ!`, 'success');
+    }
+
+    // ==============================================================
+    // TAB 5: RENDER FINANCE & CASHFLOW
+    // ==============================================================
+    function renderTransactionsTable() {
+      const typeFilter = document.getElementById('finFilterType')?.value || 'all';
+      const catFilter = document.getElementById('finFilterCategory')?.value || 'all';
+      const monthFilter = document.getElementById('finFilterMonth')?.value || 'all';
+
+      const tbody = document.getElementById('transactionsTableBody');
+      const emptyState = document.getElementById('transactionsEmptyState');
+      if (!tbody) return;
+
+      // Calculate totals
+      let totalIncome = 0;
+      let totalExpense = 0;
+      let incomeCount = 0;
+      let expenseCount = 0;
+
+      appData.transactions.forEach(t => {
+        const amt = Number(t.amount || 0);
+        if (t.type === 'income') {
+          totalIncome += amt;
+          incomeCount++;
+        } else {
+          totalExpense += amt;
+          expenseCount++;
+        }
+      });
+
+      document.getElementById('finTotalIncome').innerText = formatVND(totalIncome);
+      document.getElementById('finIncomeCount').innerText = `${incomeCount} giao dịch thu`;
+      document.getElementById('finTotalExpense').innerText = formatVND(totalExpense);
+      document.getElementById('finExpenseCount').innerText = `${expenseCount} giao dịch chi`;
+      document.getElementById('finBalance').innerText = formatVND(totalIncome - totalExpense);
+
+      // Filter list
+      let filtered = appData.transactions.filter(t => {
+        if (typeFilter !== 'all' && t.type !== typeFilter) return false;
+        if (catFilter !== 'all' && t.category !== catFilter) return false;
+        if (monthFilter !== 'all' && !t.date.startsWith(monthFilter)) return false;
+        return true;
+      });
+
+      // Sort by newest date
+      filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      document.getElementById('finTotalCountBadge').innerText = `${filtered.length} phiếu`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      const categoryNames = {
+        contract: 'Học phí / Hợp đồng',
+        pt_salary: 'Chi lương HLV',
+        rent: 'Tiền thuê mặt bằng',
+        utilities: 'Điện nước & Net',
+        equipment: 'Thiết bị & Dụng cụ',
+        maintenance: 'Bảo trì máy móc',
+        retail: 'Bán lẻ & Phụ kiện',
+        other: 'Khoản khác'
+      };
+
+      tbody.innerHTML = filtered.map(t => {
+        const isIncome = t.type === 'income';
+        const typeBadge = isIncome
+          ? `<span class="badge-completed px-2 py-0.5 rounded text-[11px] font-bold"><i class="fa-solid fa-arrow-down mr-1"></i> Thu (+)</span>`
+          : `<span class="badge-cancelled px-2 py-0.5 rounded text-[11px] font-bold"><i class="fa-solid fa-arrow-up mr-1"></i> Chi (-)</span>`;
+
+        return `
+          <tr class="hover:bg-[#1a2336]/60 transition">
+            <td class="px-4 py-3 font-semibold text-slate-200 whitespace-nowrap">${formatDateDisplay(t.date)}</td>
+            <td class="px-4 py-3 font-mono text-[11px] text-slate-400 whitespace-nowrap">${t.id}</td>
+            <td class="px-4 py-3 whitespace-nowrap">${typeBadge}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-slate-300">
+              <span class="px-2 py-0.5 rounded bg-[#1e293d] border border-[#28354d] text-[11px]">
+                ${categoryNames[t.category] || t.category}
+              </span>
+            </td>
+            <td class="px-4 py-3 font-medium text-white max-w-sm">${t.description}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-slate-400">${t.method || 'Chuyển khoản'}</td>
+            <td class="px-4 py-3 text-right font-black whitespace-nowrap ${isIncome ? 'text-emerald-400' : 'text-rose-400'}">
+              ${isIncome ? '+' : '-'}${formatVND(t.amount)}
+            </td>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+              <button onclick="deleteTransaction('${t.id}')" title="Xóa giao dịch này" class="p-1 text-slate-500 hover:text-rose-400 transition">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function saveManualTransaction(e) {
+      e.preventDefault();
+      const type = document.getElementById('transType').value;
+      const category = document.getElementById('transCategory').value;
+      const amount = Number(document.getElementById('transAmount').value);
+      const date = document.getElementById('transDate').value;
+      const method = document.getElementById('transMethod').value;
+      const description = document.getElementById('transDescription').value.trim();
+
+      if (isNaN(amount) || amount <= 0 || !date || !description) {
+        showToast('Vui lòng nhập đầy đủ thông tin phiếu!', 'error');
+        return;
+      }
+
+      const txId = (type === 'income' ? 'THU-' : 'CHI-') + Math.floor(1000 + Math.random() * 9000);
+      const newTx = {
+        id: txId,
+        date,
+        type,
+        category,
+        description,
+        amount,
+        method
+      };
+
+      appData.transactions.unshift(newTx);
+      saveData();
+      refreshAllViews();
+      closeModal('modalTransaction');
+      document.getElementById('formTransaction').reset();
+      showToast(`Đã tạo phiếu ${type === 'income' ? 'THU' : 'CHI'} ${formatVND(amount)}!`, 'success');
+    }
+
+    function deleteTransaction(txId) {
+      const tx = appData.transactions.find(t => t.id === txId);
+      if (!tx) return;
+
+      if (!confirm(`Bạn có chắc chắn muốn xóa phiếu giao dịch "${tx.description}" (${formatVND(tx.amount)})?`)) {
+        return;
+      }
+
+      appData.transactions = appData.transactions.filter(t => t.id !== txId);
+      saveData();
+      refreshAllViews();
+      showToast('Đã xóa phiếu giao dịch', 'info');
+    }
+
+    // ==============================================================
+    // BACKUP & RESTORE (EXPORT / IMPORT JSON & CSV)
+    // ==============================================================
+    function exportDataJSON() {
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(appData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      const filename = `KimNguyen_Fitness_Backup_${new Date().toISOString().split('T')[0]}.json`;
+      downloadAnchor.setAttribute('href', dataStr);
+      downloadAnchor.setAttribute('download', filename);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      toggleMenuDropdown();
+      showToast('Đã xuất toàn bộ dữ liệu ra file JSON!', 'success');
+    }
+
+    function exportDataCSV() {
+      // Export transactions CSV
+      let csv = 'Mã GD,Ngày,Loại,Danh mục,Nội dung,Hình thức,Số tiền (VNĐ)\n';
+      appData.transactions.forEach(t => {
+        const desc = `"${(t.description || '').replace(/"/g, '""')}"`;
+        csv += `${t.id},${t.date},${t.type === 'income' ? 'Thu' : 'Chi'},${t.category},${desc},${t.method},${t.amount}\n`;
+      });
+
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', url);
+      downloadAnchor.setAttribute('download', `KimNguyen_Fitness_SoQuy_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      toggleMenuDropdown();
+      showToast('Đã xuất báo cáo sổ quỹ ra file CSV!', 'success');
+    }
+
+    function importDataJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed && Array.isArray(parsed.clients) && Array.isArray(parsed.pts)) {
+            appData = parsed;
+            saveData();
+            refreshAllViews();
+            showToast('Nhập dữ liệu sao lưu thành công!', 'success');
+          } else {
+            showToast('File JSON không đúng cấu trúc ứng dụng!', 'error');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('Không thể đọc file JSON!', 'error');
+        }
+      };
+      reader.readAsText(file);
+      toggleMenuDropdown();
+    }
+
+    function confirmResetData() {
+      if (confirm('Khôi phục lại toàn bộ dữ liệu mẫu ban đầu? (Tất cả thay đổi hiện tại sẽ được thay bằng dữ liệu chuẩn của studio)')) {
+        appData = getSeedData();
+        saveData();
+        refreshAllViews();
+        toggleMenuDropdown();
+        showToast('Đã khôi phục dữ liệu mẫu thành công!', 'info');
+      }
+    }
+
+    // ==============================================================
+    // UTILITIES: MODAL & TOAST
+    // ==============================================================
+    function openModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+      if (modalId === 'modalPT') {
+        const editField = document.getElementById('ptEditId');
+        if (editField) editField.value = '';
+      }
+      const modal = document.getElementById(modalId);
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function toggleMenuDropdown() {
+      const dropdown = document.getElementById('menuDropdown');
+      if (dropdown) dropdown.classList.toggle('hidden');
+    }
+
+    // Close dropdown on outside click
+    document.addEventListener('click', function(e) {
+      const btn = document.getElementById('menuDropdownBtn');
+      const dropdown = document.getElementById('menuDropdown');
+      if (btn && dropdown && !btn.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      let icon = 'fa-solid fa-circle-info';
+      let borderCol = 'border-emerald-500';
+      let textCol = 'text-emerald-400';
+
+      if (type === 'success') {
+        icon = 'fa-solid fa-circle-check';
+        borderCol = 'border-emerald-500';
+        textCol = 'text-emerald-400';
+      } else if (type === 'error') {
+        icon = 'fa-solid fa-circle-exclamation';
+        borderCol = 'border-rose-500';
+        textCol = 'text-rose-400';
+      } else if (type === 'warning') {
+        icon = 'fa-solid fa-triangle-exclamation';
+        borderCol = 'border-amber-500';
+        textCol = 'text-amber-400';
+      }
+
+      toast.className = `flex items-center gap-3 bg-[#151d2e] border ${borderCol} text-white px-4 py-3 rounded-xl shadow-2xl text-xs max-w-sm pointer-events-auto transform transition-all duration-300 translate-y-2 opacity-0`;
+      toast.innerHTML = `
+        <i class="${icon} ${textCol} text-base"></i>
+        <span class="font-medium flex-1">${message}</span>
+      `;
+
+      container.appendChild(toast);
+
+      // Animate in
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 20);
+
+      // Remove after 3.5s
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // Start App on Load
+    window.addEventListener('DOMContentLoaded', () => {
+      initData();
+    });
+  </script>
+</body>
+</html>
